@@ -38,9 +38,12 @@ public class ChatGenerator : MonoBehaviour
 
     string _text;
     TextToSpeech _tts;
-    [SerializeField] bool _isTexting;
-    [SerializeField] bool _isTalking;
-    [SerializeField] bool _isComplete;
+    bool _isTexting;
+    bool _isTalking;
+    bool _isComplete;
+
+    public IEmbedding Embeddings => text;
+    public IText Text => text;
 
     public bool IsTexting
     {
@@ -70,6 +73,8 @@ public class ChatGenerator : MonoBehaviour
         }
     }
 
+    public bool IsExited { get; set; }
+
     public bool IsSpeaking => lines.Count > 0 || source.isPlaying;
     public bool IsGenerating => IsTexting || IsTalking;
 
@@ -78,6 +83,7 @@ public class ChatGenerator : MonoBehaviour
         text = new TextGenerator(prompt, model, maxTokens, temperature);
         text.NextTextToken += OnNextToken;
         text.TextComplete += OnTextCompleted;
+        text.AddTools(GetComponents<IToolCall>());
         textToSpeech = new TextToSpeechGenerator(voice);
 
         if (!string.IsNullOrEmpty(message))
@@ -134,6 +140,8 @@ public class ChatGenerator : MonoBehaviour
 
     public IEnumerator GenerateChat(string content)
     {
+        if (IsExited)
+            yield break;
         message = _text = string.Empty;
         IsTexting = true;
         IsComplete = false;

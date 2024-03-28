@@ -22,5 +22,4 @@ public interface IToolCall
     public Tool Tool { get; }
     public MethodInfo EntryPoint { get; }
     public Type ArgType { get; }
-    public string Prompt { get; }
 }

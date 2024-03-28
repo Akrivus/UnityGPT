@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -13,12 +14,10 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     float temperature = 0.5F;
 
     List<Message> messages = new List<Message>();
-
     Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
 
     public event EventHandler<Choice.Chunk> NextTextToken;
     public event EventHandler<Message> TextComplete;
-    public event EventHandler<ToolCallReference> ToolCall;
 
     public string Prompt => prompt;
 
@@ -89,6 +88,20 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     public void AddTool(string name, IToolCall tool)
     {
         Tools.Add(name, tool);
+    }
+
+    public void AddTools(params IToolCall[] tools)
+    {
+        foreach (var tool in tools)
+            Tools.Add(tool.Tool.Name, tool);
+    }
+
+    public IText Clone()
+    {
+        var text = new TextGenerator(prompt, model, maxTokens, temperature);
+        text.messages = new List<Message>(messages);
+        text.Tools = new Dictionary<string, IToolCall>(Tools);
+        return text;
     }
 
     void IntroduceSystemPrompt(string content, out Message message, Message.Roles role = Message.Roles.User)

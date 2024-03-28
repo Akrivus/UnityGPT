@@ -11,4 +11,5 @@ public interface IToolCaller
     public Task<string> InvokeToolCallsAsync(List<ToolCallReference> tools);
     public IEnumerator InvokeToolCalls(List<ToolCallReference> tools);
     public void AddTool(string name, IToolCall tool);
+    public void AddTools(params IToolCall[] tools);
 }

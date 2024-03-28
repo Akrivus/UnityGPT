@@ -14,8 +14,6 @@ public abstract class ToolCall<T> : MonoBehaviour, IToolCall
 
     bool _complete = true;
 
-    public abstract string Prompt { get; }
-
     public abstract string OnCall(IToolCaller caller, T args);
 
     public string CallSafe(IToolCaller caller, T args)
