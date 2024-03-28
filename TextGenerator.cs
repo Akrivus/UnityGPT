@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using UnityEngine;
 
 public class TextGenerator : IEmbedding, IText, IToolCaller
 {
@@ -11,6 +10,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     string model = "gpt-3.5-turbo";
     int maxTokens = 1024;
     float temperature = 0.5F;
+    bool hasSystemPrompt = true;
 
     List<Message> messages = new List<Message>();
     Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
@@ -22,32 +22,70 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
 
     List<Tool> tools => Tools.Select((kp) => kp.Value.Tool).ToList();
 
-    public TextGenerator(string prompt, string model, int maxTokens, float temperature)
+    public TextGenerator(string prompt, string model, int maxTokens, float temperature, bool hasSystemPrompt = true)
     {
         this.prompt = prompt;
         this.model = model;
         this.maxTokens = maxTokens;
         this.temperature = temperature;
+        this.hasSystemPrompt = hasSystemPrompt;
     }
 
     public async Task<string> GenerateTextAsync(string content)
     {
-        IntroduceSystemPrompt(content, out var message);
+        if (hasSystemPrompt && messages.Count == 0)
+            messages.Add(new Message(prompt, Message.Roles.System));
+        messages.Add(new Message(content, Message.Roles.User));
+        return await GenerateTextAsync(messages);
+    }
+
+    public async Task<string> GenerateTextAsync(List<Message> messages)
+    {
         var req = new GenerateText(model, maxTokens, temperature, messages, tools);
         var res = await ChatGenerator.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
         if (res.ToolCall)
-            await InvokeToolCallsAsync(res.ToolCalls);
+            await CallTools(res.ToolCalls);
         return res.Content;
     }
 
     public IEnumerator GenerateText(string content)
     {
-        IntroduceSystemPrompt(content, out var message);
+        if (hasSystemPrompt && messages.Count == 0)
+            messages.Add(new Message(prompt, Message.Roles.System));
+        messages.Add(new Message(content, Message.Roles.User));
+        yield return GenerateText(messages);
+    }
+
+    public IEnumerator GenerateText(List<Message> messages)
+    {
         var req = new GenerateText(model, maxTokens, temperature, messages, tools);
         req.Stream = true;
         yield return ChatGenerator.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
-            (chunk) => NextTextToken?.Invoke(this, chunk.Choice),
-            (chunks) => AddContext(chunks));
+            (chunk) => ProcessChunk(chunk),
+            (chunks) => ProcessChunks(chunks));
+    }
+
+    void ProcessChunk(GeneratedText<Choice.Chunk> chunk)
+    {
+        if (chunk.ToolCall)
+            CallTools(chunk.ToolCalls).Wait();
+        NextTextToken?.Invoke(this, chunk.Choice);
+    }
+
+    void ProcessChunks(List<GeneratedText<Choice.Chunk>> chunks)
+    {
+        var choices = chunks.Select((chunk) => chunk.Choice).Where((choice) => choice.Content != null).ToList();
+        var content = string.Join("", chunks.Select((chunk) => chunk.Content));
+        var message = new Message(content, Message.Roles.System);
+        messages.Add(message);
+        TextComplete?.Invoke(this, message);
+    }
+
+    async Task<string> CallTools(List<ToolCallReference> tools)
+    {
+        foreach (var tool in tools)
+            CallTool(tool, Tools[tool.Function.Name]);
+        return await GenerateTextAsync(messages);
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text)
@@ -57,31 +95,11 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         return res.Embedding;
     }
 
-    public void InvokeToolCall(ToolCallReference tool, IToolCall toolCall)
+    public void CallTool(ToolCallReference tool, IToolCall toolCall)
     {
         var arg = toolCall.EntryPoint.Invoke(toolCall, new object[] { QuickJSON.Deserialize(tool.Function.Arguments, toolCall.ArgType) });
         var content = QuickJSON.Serialize(arg);
         messages.Add(new Message(content, tool));
-    }
-
-    public async Task<string> InvokeToolCallsAsync(List<ToolCallReference> tools)
-    {
-        foreach (var tool in tools)
-            InvokeToolCall(tool, Tools[tool.Function.Name]);
-        var req = new GenerateText(model, maxTokens, temperature, messages);
-        var res = await ChatGenerator.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
-        return res.Content;
-    }
-
-    public IEnumerator InvokeToolCalls(List<ToolCallReference> tools)
-    {
-        foreach (var tool in tools)
-            InvokeToolCall(tool, Tools[tool.Function.Name]);
-        var req = new GenerateText(model, maxTokens, temperature, messages);
-        req.Stream = true;
-        yield return ChatGenerator.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
-            (chunk) => NextTextToken?.Invoke(this, chunk.Choice),
-            (chunks) => AddContext(chunks));
     }
 
     public void AddTool(string name, IToolCall tool)
@@ -101,22 +119,5 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         text.messages = new List<Message>(messages);
         text.Tools = new Dictionary<string, IToolCall>(Tools);
         return text;
-    }
-
-    void IntroduceSystemPrompt(string content, out Message message, Message.Roles role = Message.Roles.User)
-    {
-        if (messages.Count == 0)
-            messages.Add(new Message(prompt, Message.Roles.System));
-        messages.Add(message = new Message(content, role));
-    }
-
-    void AddContext(List<GeneratedText<Choice.Chunk>> chunks)
-    {
-        var choices = chunks.Select((chunk) => chunk.Choice).Where((choice) => choice.Content != null).ToList();
-        var content = string.Join("", chunks.Select((chunk) => chunk.Content));
-        Debug.Log(content);
-        var message = new Message(content, Message.Roles.System);
-        messages.Add(message);
-        TextComplete?.Invoke(this, message);
     }
 }

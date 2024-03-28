@@ -15,15 +15,6 @@ public class WordMap : ScriptableObject
             text = Regex.Replace(text, mapping.Old, mapping.New, RegexOptions.IgnoreCase);
         return text;
     }
-
-    public string this[string word]
-    {
-        get
-        {
-            var mapping = mappings.Find((p) => p.Old.Equals(word));
-            return mapping?.New ?? word;
-        }
-    }
 }
 
 [Serializable]

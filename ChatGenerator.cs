@@ -28,7 +28,7 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField] GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Onyx;
     [SerializeField] AudioSource source;
     [SerializeField, Range(0, 2)] float pitch = 1.0f;
-    [SerializeField] WordMap phonetics;
+    [SerializeField] WordMap wordMapping;
     [SerializeField] string message;
 
     TextGenerator text;
@@ -88,8 +88,8 @@ public class ChatGenerator : MonoBehaviour
 
         if (!string.IsNullOrEmpty(message))
             StartCoroutine(GenerateChat(message));
-        if (phonetics == null)
-            phonetics = ScriptableObject.CreateInstance<WordMap>();
+        if (wordMapping == null)
+            wordMapping = ScriptableObject.CreateInstance<WordMap>();
     }
 
     void Update()
@@ -122,7 +122,7 @@ public class ChatGenerator : MonoBehaviour
         if (!matches)
             return;
         message += _text;
-        _tts = new TextToSpeech(phonetics.Filter(_text));
+        _tts = new TextToSpeech(wordMapping.Filter(_text));
         lines.Enqueue(_tts);
         textToSpeech.GenerateSpeech(_tts);
         TextGenStep?.Invoke(this,
