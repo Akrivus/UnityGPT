@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using UnityEngine;
 
 public class TextGenerator : IEmbedding, IText, IToolCaller
 {
@@ -11,15 +13,16 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     float temperature = 0.5F;
 
     List<Message> messages = new List<Message>();
-    List<Tool> tools = new List<Tool>();
 
     Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
 
-    public event EventHandler<Choice.Chunk> NextToken;
+    public event EventHandler<Choice.Chunk> NextTextToken;
+    public event EventHandler<Message> TextComplete;
     public event EventHandler<ToolCallReference> ToolCall;
-    public event EventHandler<string> TextCompleted;
 
     public string Prompt => prompt;
+
+    List<Tool> tools => Tools.Select((kp) => kp.Value.Tool).ToList();
 
     public TextGenerator(string prompt, string model, int maxTokens, float temperature)
     {
@@ -32,7 +35,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     public async Task<string> GenerateTextAsync(string content)
     {
         IntroduceSystemPrompt(content, out var message);
-        var req = new GenerateText(model, maxTokens, temperature, messages);
+        var req = new GenerateText(model, maxTokens, temperature, messages, tools);
         var res = await ChatGenerator.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
         if (res.ToolCall)
             await InvokeToolCallsAsync(res.ToolCalls);
@@ -42,11 +45,11 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     public IEnumerator GenerateText(string content)
     {
         IntroduceSystemPrompt(content, out var message);
-        var req = new GenerateText(model, maxTokens, temperature, messages);
+        var req = new GenerateText(model, maxTokens, temperature, messages, tools);
         req.Stream = true;
         yield return ChatGenerator.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
-            (chunk) => NextToken?.Invoke(this, chunk.Choice));
-        TextCompleted?.Invoke(this, message.Content);
+            (chunk) => NextTextToken?.Invoke(this, chunk.Choice),
+            (chunks) => AddContext(chunks));
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text)
@@ -79,7 +82,13 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         var req = new GenerateText(model, maxTokens, temperature, messages);
         req.Stream = true;
         yield return ChatGenerator.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
-            (chunk) => NextToken?.Invoke(this, chunk.Choice));
+            (chunk) => NextTextToken?.Invoke(this, chunk.Choice),
+            (chunks) => AddContext(chunks));
+    }
+
+    public void AddTool(string name, IToolCall tool)
+    {
+        Tools.Add(name, tool);
     }
 
     void IntroduceSystemPrompt(string content, out Message message, Message.Roles role = Message.Roles.User)
@@ -87,5 +96,15 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         if (messages.Count == 0)
             messages.Add(new Message(prompt, Message.Roles.System));
         messages.Add(message = new Message(content, role));
+    }
+
+    void AddContext(List<GeneratedText<Choice.Chunk>> chunks)
+    {
+        var choices = chunks.Select((chunk) => chunk.Choice).Where((choice) => choice.Content != null).ToList();
+        var content = string.Join("", chunks.Select((chunk) => chunk.Content));
+        Debug.Log(content);
+        var message = new Message(content, Message.Roles.System);
+        messages.Add(message);
+        TextComplete?.Invoke(this, message);
     }
 }

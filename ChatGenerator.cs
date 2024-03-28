@@ -8,68 +8,101 @@ public class ChatGenerator : MonoBehaviour
     public readonly static RestClient API = new RestClient("https://api.openai.com/v1", Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
     readonly static string[] StopCodes = new string[] { ".", "?", "!", "\n" };
 
-    public event EventHandler<string> TextStarted;
-	public event EventHandler<string> TextCompleted;
-	public event EventHandler<string> TalkStarted;
-	public event EventHandler<string> TalkCompleted;
-	public event EventHandler<string> ChatCompleted;
+    public event EventHandler<ChatEvent> TextGenStart;
+    public event EventHandler<ChatEvent> TextGenStep;
+    public event EventHandler<ChatEvent> TextGenComplete;
 
+    public event EventHandler<ChatEvent> TalkGenStart;
+    public event EventHandler<ChatEvent> TalkGenStep;
+    public event EventHandler<ChatEvent> TalkGenComplete;
+
+    public event EventHandler<ChatEvent> ChatGenStart;
+    public event EventHandler<ChatEvent> ChatGenStep;
+	public event EventHandler<ChatEvent> ChatGenComplete;
+
+    [TextArea(3, 10)]
     [SerializeField] string prompt = "You are a helpful assistant inside of a Unity scene.";
     [SerializeField] string model = "gpt-3.5-turbo";
     [SerializeField] int maxTokens = 4096;
     [SerializeField] float temperature = 1.0f;
     [SerializeField] GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Onyx;
     [SerializeField] AudioSource source;
+    [SerializeField] string message;
 
     TextGenerator text;
     TextToSpeechGenerator textToSpeech;
 
     Queue<TextToSpeech> lines = new Queue<TextToSpeech>();
 
-    string sentence;
-    public string message;
+    string _text;
+    TextToSpeech _tts;
+    States _state;
 
-    public bool IsTexting { get; private set; }
-    public bool IsTalking { get; private set; }
-    public bool IsWaiting { get; private set; }
     public bool IsReady { get; private set; }
-
-    public IEnumerator GenerateChat(string content)
+    public bool IsTexting
     {
-        IsTexting = true;
-        IsTalking = false;
-        IsWaiting = false;
-        IsReady = false;
-        sentence = string.Empty;
-        message = string.Empty;
-		TextStarted?.Invoke(this, content);
-        yield return text.GenerateText(content);
+        get => States.Texting == _state;
+        private set
+        {
+            var handler = value ? TextGenStart : TextGenComplete;
+            _state =  value ? States.Texting : States.Waiting;
+            handler?.Invoke(this, new ChatEvent(_state, message));
+            if (value) _text = string.Empty;
+        }
     }
+    public bool IsTalking
+    {
+        get => States.Talking == _state;
+        private set
+        {
+            var handler = value ? TalkGenStart : TalkGenComplete;
+            _state = value ? States.Talking : States.Complete;
+            handler?.Invoke(this, new ChatEvent(_state, message));
+        }
+    }
+    public bool IsWaiting
+    {
+        get => States.Waiting == _state;
+        private set => _state = value ? States.Waiting : _state;
+    }
+    public bool IsComplete
+    {
+        get => States.Complete == _state;
+        private set
+        {
+            var handler = value ? ChatGenComplete : ChatGenStart;
+            _state = value ? States.Complete : States.Waiting;
+            if (value) IsReady = value;
+            ChatGenComplete?.Invoke(this, new ChatEvent(_state, message));
+        }
+    }
+
+    public bool IsSpeaking => lines.Count > 0 || source.isPlaying;
+    public bool IsGenerating => IsTexting || IsTalking;
 
     void Awake()
     {
         text = new TextGenerator(prompt, model, maxTokens, temperature);
-        text.NextToken += OnNextToken;
-        text.TextCompleted += OnTextCompleted;
+        text.NextTextToken += OnNextToken;
+        text.TextComplete += OnTextCompleted;
         textToSpeech = new TextToSpeechGenerator(voice);
+
+        if (!string.IsNullOrEmpty(message))
+            TellMe(message);
     }
 
     void Update()
     {
-        if (IsWaiting && !IsTalking && !IsReady)
-        {
-            ChatCompleted?.Invoke(this, message);
-            IsReady = true;
-        }
-		if (IsTalking && lines.Count == 0 && !source.isPlaying)
-		{
-			TalkCompleted?.Invoke(this, message);
+        if (IsWaiting && !IsGenerating && !IsReady)
+            IsComplete = true;
+		if (IsTalking && !IsSpeaking)
 			IsTalking = false;
-		}
         if (lines.TryPeek(out var tts))
         {
-            if (!tts.Ready || source.isPlaying)
+            if (!tts.IsReady || source.isPlaying)
                 return;
+            TalkGenStep?.Invoke(this,
+                new ChatEvent(States.Talking, message, tts.Text));
             tts.Play(source);
             lines.Dequeue();
         }
@@ -78,25 +111,64 @@ public class ChatGenerator : MonoBehaviour
     void OnNextToken(object sender, Choice.Chunk e)
     {
         var content = e.Content ?? string.Empty;
-        sentence += content;
+        _text += content;
         var matches = false;
         foreach (var code in StopCodes)
             if (content.Contains(code))
                 matches = true;
-        if (!matches) return;
-        message += sentence;
-        var tts = new TextToSpeech(sentence);
-        lines.Enqueue(tts);
-        textToSpeech.GenerateSpeech(tts);
-        sentence = string.Empty;
+        if (!matches)
+            return;
+        message += _text;
+        _tts = new TextToSpeech(_text);
+        lines.Enqueue(_tts);
+        textToSpeech.GenerateSpeech(_tts);
+        TextGenStep?.Invoke(this,
+            new ChatEvent(States.Texting, message, _text));
+        _text = string.Empty;
     }
 
-    void OnTextCompleted(object sender, string e)
+    void OnTextCompleted(object sender, Message message)
     {
         IsTexting = false;
 		IsTalking = true;
-        IsWaiting = true;
-		TextCompleted?.Invoke(this, message);
-		TalkStarted?.Invoke(this, message);
+        ChatGenStep?.Invoke(this,
+            new ChatEvent(States.Talking, message.Content));
+    }
+
+    public IEnumerator GenerateChat(string content)
+    {
+        Debug.Log(content);
+        message = string.Empty;
+        IsTexting = true;
+        IsReady = false;
+        yield return text.GenerateText(content);
+    }
+
+    public void TellMe(string content)
+    {
+        StartCoroutine(GenerateChat(content));
+    }
+
+    public enum States
+    {
+        Texting, Talking, Waiting, Complete
+    }
+}
+
+public class ChatEvent : EventArgs
+{
+    public ChatGenerator.States State { get; set; }
+    public string Message { get; set; }
+    public string Segment { get; set; }
+
+    public ChatEvent(ChatGenerator.States state, string message, string segment) : this(state, message)
+    {
+        Segment = segment;
+    }
+
+    public ChatEvent(ChatGenerator.States state, string message)
+    {
+        State = state;
+        Message = message;
     }
 }

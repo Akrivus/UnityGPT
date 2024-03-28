@@ -34,9 +34,9 @@ public class GenerateTextToSpeech
 public class TextToSpeech
 {
     public string Text { get; set; }
-    public AudioClip Clip { get; set; }
+    public AudioClip Speech { get; set; }
 
-    public bool Ready => Clip != null;
+    public bool IsReady => Speech != null;
 
     public TextToSpeech(string text)
     {
@@ -45,7 +45,7 @@ public class TextToSpeech
 
     public void Play(AudioSource source)
     {
-        source.clip = Clip;
+        source.clip = Speech;
         source.Play();
     }
 }

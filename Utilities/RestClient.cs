@@ -7,6 +7,7 @@ using System.Collections;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.IO;
+using System.Collections.Generic;
 
 public class RestClient
 {
@@ -63,7 +64,7 @@ public class RestClient
         return await SendJsonAsync<object, O>(HttpMethod.Post, uri, @object);
     }
 
-    public IEnumerator ListenForSSE<O>(HttpMethod method, string uri, string @string, Action<O> receiver)
+    public IEnumerator ListenForSSE<O>(HttpMethod method, string uri, string @string, Action<O> onDataCallback, Action<List<O>> onDoneCallback)
     {
         var req = new HttpRequestMessage(method, uri.TrimStart('/'));
         if (@string != null)
@@ -81,23 +82,29 @@ public class RestClient
 
         var stream = (task as Task<Stream>).Result;
         using var reader = new StreamReader(stream);
+        var data = new List<O>();
         while (!reader.EndOfStream)
         {
             task = reader.ReadLineAsync();
             yield return new WaitUntil(() => task.IsCompleted);
-            var line = (task as Task<string>).Result;
-            var json = line.Split("data: ");
-            foreach (var data in json)
-                if (data.StartsWith("{"))
-                    receiver(QuickJSON.Deserialize<O>(data));
+            var buffer = (task as Task<string>).Result;
+            var datagrams = buffer.Split("data: ");
+            foreach (var datagram in datagrams)
+                if (datagram.StartsWith("{"))
+                {
+                    O @object = QuickJSON.Deserialize<O>(datagram);
+                    data.Add(@object);
+                    onDataCallback(@object);
+                }
         }
+        onDoneCallback(data);
     }
 
-    public IEnumerator PostForSSE<O>(string uri, object @object, Action<O> receiver)
+    public IEnumerator PostForSSE<O>(string uri, object @object, Action<O> onDataCallback, Action<List<O>> onDoneCallback)
     {
         string @string = null;
         if (@object != null)
             @string = QuickJSON.Serialize(@object);
-        yield return ListenForSSE(HttpMethod.Post, uri, @string, receiver);
+        yield return ListenForSSE(HttpMethod.Post, uri, @string, onDataCallback, onDoneCallback);
     }
 }

@@ -33,7 +33,7 @@ public class TextToSpeechGenerator : ITextToSpeech
 
     public async void GenerateSpeech(TextToSpeech tts)
     {
-        tts.Clip = await GenerateSpeechAsync(tts.Text);
-        TextToSpeechComplete?.Invoke(this, tts.Clip);
+        tts.Speech = await GenerateSpeechAsync(tts.Text);
+        TextToSpeechComplete?.Invoke(this, tts.Speech);
     }
 }

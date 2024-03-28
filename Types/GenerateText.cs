@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using static Message;
 
@@ -97,7 +98,6 @@ public class FunctionCall
     public string Arguments { get; set; }
 }
 
-
 public class GeneratedText<T> where T : Choice
 {
     public string Id { get; set; }
@@ -108,7 +108,7 @@ public class GeneratedText<T> where T : Choice
     public Usage Usage { get; set; }
 
     public T Choice => Choices[0];
-    public string Content => Choice.Message.Content;
+    public string Content => Choice.Content;
     public FinishReasons FinishReason => Choice.FinishReason;
     public List<ToolCallReference> ToolCalls => Choice.Message.ToolCalls;
     public bool ToolCall => FinishReason == FinishReasons.ToolCalls;
@@ -117,7 +117,7 @@ public class GeneratedText<T> where T : Choice
 public class Choice
 {
     public int Index { get; set; }
-    public Message Message { get; set; }
+    public virtual Message Message { get; set; }
     public FinishReasons FinishReason { get; set; }
 
     [JsonIgnore]
@@ -127,9 +127,6 @@ public class Choice
     {
         public bool ShouldSerializeMessage() => false;
         public Message Delta { get; set; }
-        public new Message Message => Delta;
-
-        [JsonIgnore]
-        public new string Content => Delta.Content;
+        public override Message Message => Delta;
     }
 }
