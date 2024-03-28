@@ -38,44 +38,35 @@ public class ChatGenerator : MonoBehaviour
 
     string _text;
     TextToSpeech _tts;
-    States _state;
+    bool _isTexting;
+    bool _isTalking;
+    bool _isComplete;
 
-    public bool IsReady { get; private set; }
     public bool IsTexting
     {
-        get => States.Texting == _state;
+        get => _isComplete ? false : _isTexting;
         private set
         {
-            var handler = value ? TextGenStart : TextGenComplete;
-            _state =  value ? States.Texting : States.Waiting;
-            handler?.Invoke(this, new ChatEvent(_state, message));
-            if (value) _text = string.Empty;
+            _isTexting = value;
+            FireEvent(_isTexting ? TextGenStart : TextGenComplete, new ChatEvent(message));
         }
     }
     public bool IsTalking
     {
-        get => States.Talking == _state;
+        get => _isComplete ? false : _isTalking;
         private set
         {
-            var handler = value ? TalkGenStart : TalkGenComplete;
-            _state = value ? States.Talking : States.Complete;
-            handler?.Invoke(this, new ChatEvent(_state, message));
+            _isTalking = value;
+            FireEvent(value ? TalkGenStart : TalkGenComplete, new ChatEvent(message));
         }
-    }
-    public bool IsWaiting
-    {
-        get => States.Waiting == _state;
-        private set => _state = value ? States.Waiting : _state;
     }
     public bool IsComplete
     {
-        get => States.Complete == _state;
+        get => _isComplete;
         private set
         {
-            var handler = value ? ChatGenComplete : ChatGenStart;
-            _state = value ? States.Complete : States.Waiting;
-            if (value) IsReady = value;
-            ChatGenComplete?.Invoke(this, new ChatEvent(_state, message));
+            _isComplete = value;
+            FireEvent(value ? ChatGenComplete : ChatGenStart,  new ChatEvent(message));
         }
     }
 
@@ -90,14 +81,14 @@ public class ChatGenerator : MonoBehaviour
         textToSpeech = new TextToSpeechGenerator(voice);
 
         if (!string.IsNullOrEmpty(message))
-            TellMe(message);
+            StartCoroutine(GenerateChat(message));
         if (phonetics == null)
             phonetics = ScriptableObject.CreateInstance<WordMap>();
     }
 
     void Update()
     {
-        if (IsWaiting && !IsGenerating && !IsReady)
+        if (!IsGenerating && !IsComplete)
             IsComplete = true;
 		if (IsTalking && !IsSpeaking)
 			IsTalking = false;
@@ -106,7 +97,7 @@ public class ChatGenerator : MonoBehaviour
             if (!tts.IsReady || source.isPlaying)
                 return;
             TalkGenStep?.Invoke(this,
-                new ChatEvent(States.Talking, message, tts.Text));
+                new ChatEvent(message, tts.Text));
             source.pitch = pitch;
             source.clip = tts.Speech;
             source.Play();
@@ -129,7 +120,7 @@ public class ChatGenerator : MonoBehaviour
         lines.Enqueue(_tts);
         textToSpeech.GenerateSpeech(_tts);
         TextGenStep?.Invoke(this,
-            new ChatEvent(States.Texting, message, _text));
+            new ChatEvent(message, _text));
         _text = string.Empty;
     }
 
@@ -138,42 +129,34 @@ public class ChatGenerator : MonoBehaviour
         IsTexting = false;
 		IsTalking = true;
         ChatGenStep?.Invoke(this,
-            new ChatEvent(States.Talking, message.Content));
+            new ChatEvent(message.Content));
     }
 
     public IEnumerator GenerateChat(string content)
     {
-        message = string.Empty;
+        message = _text = string.Empty;
         IsTexting = true;
-        IsReady = false;
         yield return text.GenerateText(content);
     }
 
-    public void TellMe(string content)
+    void FireEvent(EventHandler<ChatEvent> handler, ChatEvent e)
     {
-        StartCoroutine(GenerateChat(content));
-    }
-
-    public enum States
-    {
-        Texting, Talking, Waiting, Complete
+        handler?.Invoke(this, e);
     }
 }
 
 public class ChatEvent : EventArgs
 {
-    public ChatGenerator.States State { get; set; }
     public string Message { get; set; }
     public string Segment { get; set; }
 
-    public ChatEvent(ChatGenerator.States state, string message, string segment) : this(state, message)
+    public ChatEvent(string message, string segment) : this(message)
     {
         Segment = segment;
     }
 
-    public ChatEvent(ChatGenerator.States state, string message)
+    public ChatEvent(string message)
     {
-        State = state;
         Message = message;
     }
 }
