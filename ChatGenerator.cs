@@ -38,9 +38,9 @@ public class ChatGenerator : MonoBehaviour
 
     string _text;
     TextToSpeech _tts;
-    bool _isTexting;
-    bool _isTalking;
-    bool _isComplete;
+    [SerializeField] bool _isTexting;
+    [SerializeField] bool _isTalking;
+    [SerializeField] bool _isComplete;
 
     public bool IsTexting
     {
@@ -136,6 +136,7 @@ public class ChatGenerator : MonoBehaviour
     {
         message = _text = string.Empty;
         IsTexting = true;
+        IsComplete = false;
         yield return text.GenerateText(content);
     }
 
