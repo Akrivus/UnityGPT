@@ -42,10 +42,4 @@ public class TextToSpeech
     {
         Text = text;
     }
-
-    public void Play(AudioSource source)
-    {
-        source.clip = Speech;
-        source.Play();
-    }
 }

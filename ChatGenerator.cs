@@ -27,6 +27,8 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField] float temperature = 1.0f;
     [SerializeField] GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Onyx;
     [SerializeField] AudioSource source;
+    [SerializeField, Range(0, 2)] float pitch = 1.0f;
+    [SerializeField] WordMap phonetics;
     [SerializeField] string message;
 
     TextGenerator text;
@@ -89,6 +91,8 @@ public class ChatGenerator : MonoBehaviour
 
         if (!string.IsNullOrEmpty(message))
             TellMe(message);
+        if (phonetics == null)
+            phonetics = ScriptableObject.CreateInstance<WordMap>();
     }
 
     void Update()
@@ -103,7 +107,9 @@ public class ChatGenerator : MonoBehaviour
                 return;
             TalkGenStep?.Invoke(this,
                 new ChatEvent(States.Talking, message, tts.Text));
-            tts.Play(source);
+            source.pitch = pitch;
+            source.clip = tts.Speech;
+            source.Play();
             lines.Dequeue();
         }
     }
@@ -119,7 +125,7 @@ public class ChatGenerator : MonoBehaviour
         if (!matches)
             return;
         message += _text;
-        _tts = new TextToSpeech(_text);
+        _tts = new TextToSpeech(phonetics.Filter(_text));
         lines.Enqueue(_tts);
         textToSpeech.GenerateSpeech(_tts);
         TextGenStep?.Invoke(this,
@@ -137,7 +143,6 @@ public class ChatGenerator : MonoBehaviour
 
     public IEnumerator GenerateChat(string content)
     {
-        Debug.Log(content);
         message = string.Empty;
         IsTexting = true;
         IsReady = false;
