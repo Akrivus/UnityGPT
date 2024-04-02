@@ -68,7 +68,6 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     void ProcessChunk(GeneratedText<Choice.Chunk> chunk)
     {
         if (chunk.ToolCall) CallTools(chunk.ToolCalls).Wait();
-        UnityEngine.Debug.Log(chunk.Choice.Content);
         TextUpdate?.Invoke(this, new TextEvent(chunk.Choice.Content));
     }
 

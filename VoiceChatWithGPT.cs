@@ -10,11 +10,14 @@ public class VoiceChatWithGPT : MonoBehaviour
 
     SpeechToTextGenerator generator;
 
+    public ChatGenerator ChatGenerator => chat;
+    public SpeechToTextGenerator SpeechToTextGenerator => generator;
+
     private void Start()
     {
         generator = new SpeechToTextGenerator(recorder, prompt, model, temperature);
         generator.TextComplete += OnTextComplete;
-        chat.ChatComplete += OnChatComplete;
+        chat.TextToSpeechComplete += OnTextToSpeechComplete;
         StartCoroutine(generator.GenerateText(string.Empty));
     }
 
@@ -23,8 +26,8 @@ public class VoiceChatWithGPT : MonoBehaviour
         StartCoroutine(chat.GenerateChat(e.Message));
     }
 
-    private void OnChatComplete(object sender, ChatEvent e)
+    private void OnTextToSpeechComplete(object sender, TextToSpeechEvent e)
     {
-        StartCoroutine(generator.GenerateText(e.Message));
+        StartCoroutine(generator.GenerateText(e.Text));
     }
 }
