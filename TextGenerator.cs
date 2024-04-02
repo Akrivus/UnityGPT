@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static IText;
 
 public class TextGenerator : IEmbedding, IText, IToolCaller
 {
@@ -15,8 +16,8 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     List<Message> messages = new List<Message>();
     Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
 
-    public event EventHandler<Choice.Chunk> NextTextToken;
-    public event EventHandler<Message> TextComplete;
+    public event EventHandler<TextEvent> TextComplete;
+    public event EventHandler<TextEvent> TextUpdate;
 
     public string Prompt => prompt;
 
@@ -39,6 +40,14 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         return await GenerateTextAsync(messages);
     }
 
+    public IEnumerator GenerateText(string content)
+    {
+        if (hasSystemPrompt && messages.Count == 0)
+            messages.Add(new Message(prompt, Message.Roles.System));
+        messages.Add(new Message(content, Message.Roles.User));
+        yield return GenerateText(messages);
+    }
+
     public async Task<string> GenerateTextAsync(List<Message> messages)
     {
         var req = new GenerateText(model, maxTokens, temperature, messages, tools);
@@ -46,14 +55,6 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         if (res.ToolCall)
             await CallTools(res.ToolCalls);
         return res.Content;
-    }
-
-    public IEnumerator GenerateText(string content)
-    {
-        if (hasSystemPrompt && messages.Count == 0)
-            messages.Add(new Message(prompt, Message.Roles.System));
-        messages.Add(new Message(content, Message.Roles.User));
-        yield return GenerateText(messages);
     }
 
     public IEnumerator GenerateText(List<Message> messages)
@@ -67,9 +68,8 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
 
     void ProcessChunk(GeneratedText<Choice.Chunk> chunk)
     {
-        if (chunk.ToolCall)
-            CallTools(chunk.ToolCalls).Wait();
-        NextTextToken?.Invoke(this, chunk.Choice);
+        if (chunk.ToolCall) CallTools(chunk.ToolCalls).Wait();
+        TextUpdate?.Invoke(this, new TextEvent(chunk.Choice.Content));
     }
 
     void ProcessChunks(List<GeneratedText<Choice.Chunk>> chunks)
@@ -78,14 +78,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         var content = string.Join("", chunks.Select((chunk) => chunk.Content));
         var message = new Message(content, Message.Roles.System);
         messages.Add(message);
-        TextComplete?.Invoke(this, message);
-    }
-
-    async Task<string> CallTools(List<ToolCallReference> tools)
-    {
-        foreach (var tool in tools)
-            CallTool(tool, Tools[tool.Function.Name]);
-        return await GenerateTextAsync(messages);
+        TextUpdate?.Invoke(this, new TextEvent(message.Content));
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text)
@@ -102,6 +95,13 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         messages.Add(new Message(content, tool));
     }
 
+    async Task<string> CallTools(List<ToolCallReference> tools)
+    {
+        foreach (var tool in tools)
+            CallTool(tool, Tools[tool.Function.Name]);
+        return await GenerateTextAsync(messages);
+    }
+
     public void AddTool(string name, IToolCall tool)
     {
         Tools.Add(name, tool);
@@ -113,11 +113,8 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
             Tools.Add(tool.Tool.Name, tool);
     }
 
-    public IText Clone()
+    public void ClearMessages()
     {
-        var text = new TextGenerator(prompt, model, maxTokens, temperature);
-        text.messages = new List<Message>(messages);
-        text.Tools = new Dictionary<string, IToolCall>(Tools);
-        return text;
+        messages.Clear();
     }
 }

@@ -33,7 +33,6 @@ public class ChatMemory : MonoBehaviour, IVectorDB
 
     public async Task AddAsync()
     {
-        text = chat.Text.Clone();
         var content = await text.GenerateTextAsync("Summarize this " +
             "conversation, including what you learned and what you " +
             "would like to learn more about.");

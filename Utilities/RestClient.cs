@@ -54,6 +54,15 @@ public class RestClient
         }
     }
 
+    public async Task<O> SendMultiPartAsync<O>(HttpMethod method, string uri, MultipartFormDataContent content)
+    {
+        var req = new HttpRequestMessage(method, uri.TrimStart('/'));
+        req.Content = content;
+        var res = await _client.SendAsync(req);
+        var json = await res.Content.ReadAsStringAsync();
+        return QuickJSON.Deserialize<O>(json);
+    }
+
     public async Task<O> GetAsync<O>(string uri)
     {
         return await SendJsonAsync<object, O>(HttpMethod.Get, uri, null);

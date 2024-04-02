@@ -8,17 +8,17 @@ public class ChatGenerator : MonoBehaviour
     public readonly static RestClient API = new RestClient("https://api.openai.com/v1", Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
     readonly static string[] StopCodes = new string[] { ".", "?", "!", "\n" };
 
-    public event EventHandler<ChatEvent> TextGenStart;
-    public event EventHandler<ChatEvent> TextGenStep;
-    public event EventHandler<ChatEvent> TextGenComplete;
+    public event EventHandler<TextEvent> TextStart;
+    public event EventHandler<TextEvent> TextUpdate;
+    public event EventHandler<TextEvent> TextComplete;
 
-    public event EventHandler<ChatEvent> TalkGenStart;
-    public event EventHandler<ChatEvent> TalkGenStep;
-    public event EventHandler<ChatEvent> TalkGenComplete;
+    public event EventHandler<TextToSpeechEvent> TextToSpeechStart;
+    public event EventHandler<TextToSpeechEvent> TextToSpeechUpdate;
+    public event EventHandler<TextToSpeechEvent> TextToSpeechComplete;
 
-    public event EventHandler<ChatEvent> ChatGenStart;
-    public event EventHandler<ChatEvent> ChatGenStep;
-	public event EventHandler<ChatEvent> ChatGenComplete;
+    public event EventHandler<ChatEvent> ChatStart;
+    public event EventHandler<ChatEvent> ChatUpdate;
+	public event EventHandler<ChatEvent> ChatComplete;
 
     [TextArea(3, 10)]
     [SerializeField] string prompt = "You are a helpful assistant inside of a Unity scene.";
@@ -27,8 +27,8 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField] float temperature = 1.0f;
     [SerializeField] GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Onyx;
     [SerializeField] AudioSource source;
-    [SerializeField, Range(0, 2)] float pitch = 1.0f;
-    [SerializeField] WordMap wordMapping;
+    [SerializeField, Range(0.8f, 1.2f)] float pitch = 1.0f;
+    [SerializeField] WordMapping wordMapping;
     [SerializeField] string message;
 
     TextGenerator text;
@@ -44,6 +44,7 @@ public class ChatGenerator : MonoBehaviour
 
     public IEmbedding Embeddings => text;
     public IText Text => text;
+    public ITextToSpeech TextToSpeech => textToSpeech;
 
     public bool IsTexting
     {
@@ -51,7 +52,7 @@ public class ChatGenerator : MonoBehaviour
         private set
         {
             _isTexting = value;
-            FireEvent(_isTexting ? TextGenStart : TextGenComplete, new ChatEvent(message));
+            (value ? TextStart : TextComplete)?.Invoke(this, new TextEvent(message));
         }
     }
     public bool IsTalking
@@ -60,7 +61,7 @@ public class ChatGenerator : MonoBehaviour
         private set
         {
             _isTalking = value;
-            FireEvent(value ? TalkGenStart : TalkGenComplete, new ChatEvent(message));
+            (value ? TextToSpeechStart : TextToSpeechComplete)?.Invoke(this, new TextToSpeechEvent(message));
         }
     }
     public bool IsComplete
@@ -69,7 +70,7 @@ public class ChatGenerator : MonoBehaviour
         private set
         {
             _isComplete = value;
-            FireEvent(value ? ChatGenComplete : ChatGenStart,  new ChatEvent(message));
+            (value ? ChatComplete : ChatStart)?.Invoke(this, new ChatEvent(message));
         }
     }
 
@@ -81,15 +82,15 @@ public class ChatGenerator : MonoBehaviour
     void Awake()
     {
         text = new TextGenerator(prompt, model, maxTokens, temperature);
-        text.NextTextToken += OnNextToken;
-        text.TextComplete += OnTextCompleted;
+        text.TextUpdate += OnTextUpdate;
+        text.TextComplete += OnTextComplete;
         text.AddTools(GetComponents<IToolCall>());
         textToSpeech = new TextToSpeechGenerator(voice);
 
         if (!string.IsNullOrEmpty(message))
             StartCoroutine(GenerateChat(message));
         if (wordMapping == null)
-            wordMapping = ScriptableObject.CreateInstance<WordMap>();
+            wordMapping = ScriptableObject.CreateInstance<WordMapping>();
     }
 
     void Update()
@@ -102,8 +103,7 @@ public class ChatGenerator : MonoBehaviour
         {
             if (!tts.IsReady || source.isPlaying)
                 return;
-            TalkGenStep?.Invoke(this,
-                new ChatEvent(message, tts.Text));
+            TextToSpeechUpdate?.Invoke(this, new TextToSpeechEvent(tts.Text));
             source.pitch = pitch;
             source.clip = tts.Speech;
             source.Play();
@@ -111,9 +111,9 @@ public class ChatGenerator : MonoBehaviour
         }
     }
 
-    void OnNextToken(object sender, Choice.Chunk e)
+    void OnTextUpdate(object sender, TextEvent e)
     {
-        var content = e.Content ?? string.Empty;
+        var content = e.Message ?? string.Empty;
         _text += content;
         var matches = false;
         foreach (var code in StopCodes)
@@ -125,17 +125,15 @@ public class ChatGenerator : MonoBehaviour
         _tts = new TextToSpeech(wordMapping.Filter(_text));
         lines.Enqueue(_tts);
         textToSpeech.GenerateSpeech(_tts);
-        TextGenStep?.Invoke(this,
-            new ChatEvent(message, _text));
+        TextUpdate?.Invoke(this, new TextEvent(_text));
         _text = string.Empty;
     }
 
-    void OnTextCompleted(object sender, Message message)
+    void OnTextComplete(object sender, TextEvent e)
     {
         IsTexting = false;
 		IsTalking = true;
-        ChatGenStep?.Invoke(this,
-            new ChatEvent(message.Content));
+        ChatUpdate?.Invoke(this, new ChatEvent(e.Message));
     }
 
     public IEnumerator GenerateChat(string content)
@@ -147,22 +145,11 @@ public class ChatGenerator : MonoBehaviour
         IsComplete = false;
         yield return text.GenerateText(content);
     }
-
-    void FireEvent(EventHandler<ChatEvent> handler, ChatEvent e)
-    {
-        handler?.Invoke(this, e);
-    }
 }
 
 public class ChatEvent : EventArgs
 {
     public string Message { get; set; }
-    public string Segment { get; set; }
-
-    public ChatEvent(string message, string segment) : this(message)
-    {
-        Segment = segment;
-    }
 
     public ChatEvent(string message)
     {
