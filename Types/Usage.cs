@@ -1,4 +1,5 @@
-﻿public class Usage
+﻿
+public class Usage
 {
     public int PromptTokens { get; set; }
     public int CompletionTokens { get; set; }
