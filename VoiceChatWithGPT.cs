@@ -18,7 +18,7 @@ public class VoiceChatWithGPT : MonoBehaviour
         generator = new SpeechToTextGenerator(recorder, prompt, model, temperature);
         generator.TextComplete += OnTextComplete;
         chat.TextToSpeechComplete += OnTextToSpeechComplete;
-        StartCoroutine(generator.GenerateText(string.Empty));
+        StartCoroutine(generator.GenerateText(prompt));
     }
 
     private void OnTextComplete(object sender, TextEvent e)

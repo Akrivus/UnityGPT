@@ -77,7 +77,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         var content = string.Join("", chunks.Select((chunk) => chunk.Content));
         var message = new Message(content, Message.Roles.System);
         messages.Add(message);
-        TextUpdate?.Invoke(this, new TextEvent(message.Content));
+        TextComplete?.Invoke(this, new TextEvent(message.Content));
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text)

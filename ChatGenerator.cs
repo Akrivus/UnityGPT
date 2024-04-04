@@ -48,7 +48,7 @@ public class ChatGenerator : MonoBehaviour
 
     public bool IsTexting
     {
-        get => _isComplete ? false : _isTexting;
+        get => _isTexting;
         private set
         {
             _isTexting = value;
@@ -57,7 +57,7 @@ public class ChatGenerator : MonoBehaviour
     }
     public bool IsTalking
     {
-        get => _isComplete ? false : _isTalking;
+        get => _isTalking;
         private set
         {
             _isTalking = value;
@@ -86,6 +86,7 @@ public class ChatGenerator : MonoBehaviour
         text.TextComplete += OnTextComplete;
         text.AddTools(GetComponents<IToolCall>());
         textToSpeech = new TextToSpeechGenerator(voice);
+        textToSpeech.TextToSpeechStart += OnTextToSpeechStart;
 
         if (!string.IsNullOrEmpty(message))
             StartCoroutine(GenerateChat(message));
@@ -132,14 +133,17 @@ public class ChatGenerator : MonoBehaviour
     void OnTextComplete(object sender, TextEvent e)
     {
         IsTexting = false;
-		IsTalking = true;
-        ChatUpdate?.Invoke(this, new ChatEvent(e.Message));
+    }
+
+    void OnTextToSpeechStart(object sender, TextToSpeechEvent e)
+    {
+        IsTalking = true;
+        ChatUpdate?.Invoke(this, new ChatEvent(e.Text));
     }
 
     public IEnumerator GenerateChat(string content)
     {
-        if (IsExited)
-            yield break;
+        if (IsExited) yield break;
         message = _text = string.Empty;
         IsTexting = true;
         IsComplete = false;

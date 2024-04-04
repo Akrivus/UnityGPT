@@ -2,13 +2,13 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnityEngine;
-using static ITextToSpeech;
 
 public class TextToSpeechGenerator : ITextToSpeech
 {
 
     GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Echo;
 
+    public event EventHandler<TextToSpeechEvent> TextToSpeechStart;
     public event EventHandler<TextToSpeechEvent> TextToSpeechComplete;
 
     public TextToSpeechGenerator(GenerateTextToSpeech.Voices voice)
@@ -31,6 +31,7 @@ public class TextToSpeechGenerator : ITextToSpeech
 
     public async void GenerateSpeech(TextToSpeech tts)
     {
+        TextToSpeechStart?.Invoke(this, new TextToSpeechEvent(tts.Text));
         tts.Speech = await GenerateSpeechAsync(tts.Text);
         TextToSpeechComplete?.Invoke(this, new TextToSpeechEvent(tts.Text, tts.Speech));
     }
