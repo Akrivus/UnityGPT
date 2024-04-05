@@ -45,6 +45,15 @@ public class ChatGenerator : MonoBehaviour
     public IEmbedding Embeddings => text;
     public IText Text => text;
     public ITextToSpeech TextToSpeech => textToSpeech;
+    public string SystemPrompt
+    {
+        get => prompt;
+        set
+        {
+            prompt = value;
+            Text.ClearMessages();
+        }
+    }
 
     public bool IsTexting
     {
