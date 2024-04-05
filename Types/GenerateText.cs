@@ -4,7 +4,7 @@ using static Message;
 
 public class GenerateText
 {
-    public string Model { get; set; }
+    public TextModel Model { get; set; }
     public int MaxTokens { get; set; }
     public float Temperature { get; set; }
     public List<Message> Messages { get; set; }
@@ -12,7 +12,7 @@ public class GenerateText
     public string ToolChoice { get; set; } = "auto";
     public bool Stream { get; set; } = false;
 
-    public GenerateText(string model, int maxtokens, float temperature, List<Message> messages, List<Tool> functions = null)
+    public GenerateText(TextModel model, int maxtokens, float temperature, List<Message> messages, List<Tool> functions = null)
     {
         Model = model;
         MaxTokens = maxtokens;
@@ -128,4 +128,14 @@ public class Choice
         public Message Delta { get; set; }
         public override Message Message => Delta;
     }
+}
+
+public enum TextModel
+{
+    [JsonProperty("gpt-3.5-turbo")]
+    GPT35_Turbo,
+    [JsonProperty("gpt-4")]
+    GPT4,
+    [JsonProperty("gpt-4-turbo")]
+    GPT4_Turbo
 }

@@ -5,20 +5,21 @@ using UnityEngine;
 
 public class TextToSpeechGenerator : ITextToSpeech
 {
-
+    VoiceModel model = VoiceModel.TTS_1;
     GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Echo;
 
     public event EventHandler<TextToSpeechEvent> TextToSpeechStart;
     public event EventHandler<TextToSpeechEvent> TextToSpeechComplete;
 
-    public TextToSpeechGenerator(GenerateTextToSpeech.Voices voice)
+    public TextToSpeechGenerator(VoiceModel model, GenerateTextToSpeech.Voices voice)
     {
+        this.model = model;
         this.voice = voice;
     }
 
     public async Task<AudioClip> GenerateSpeechAsync(string text)
     {
-        var body = QuickJSON.Serialize(new GenerateTextToSpeech(text, voice));
+        var body = QuickJSON.Serialize(new GenerateTextToSpeech(text, voice, model));
         var res = await ChatGenerator.API.CleanSendAsync(HttpMethod.Post, "audio/speech", body);
         var bytes = await res.Content.ReadAsByteArrayAsync();
         var samples = new float[bytes.Length / 4];

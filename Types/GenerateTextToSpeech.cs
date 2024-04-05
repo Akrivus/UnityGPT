@@ -1,16 +1,18 @@
-﻿using UnityEngine;
+﻿using Newtonsoft.Json;
+using UnityEngine;
 
 public class GenerateTextToSpeech
 {
-    public string Model { get; set; } = "tts-1";
+    public VoiceModel Model { get; set; }
     public string Input { get; set; }
     public Voices Voice { get; set; } = Voices.Alloy;
     public Formats ResponseFormat { get; set; } = Formats.Wav;
 
-    public GenerateTextToSpeech(string input, Voices voice)
+    public GenerateTextToSpeech(string input, Voices voice, VoiceModel model)
     {
         Input = input;
         Voice = voice;
+        Model = model;
     }
 
     public enum Voices
@@ -42,4 +44,12 @@ public class TextToSpeech
     {
         Text = text;
     }
+}
+
+public enum VoiceModel
+{
+    [JsonProperty("tts-1")]
+    TTS_1,
+    [JsonProperty("tts-1-hd")]
+    TTS_1HD,
 }

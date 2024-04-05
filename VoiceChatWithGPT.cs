@@ -1,33 +1,47 @@
-﻿using UnityEngine;
+﻿using System.Diagnostics;
+using UnityEngine;
 
 public class VoiceChatWithGPT : MonoBehaviour
 {
     [SerializeField] VoiceRecorder recorder;
     [SerializeField] ChatGenerator chat;
     [SerializeField] string prompt;
-    [SerializeField] string model = "whisper-1";
     [SerializeField, Range(0.0f, 1.0f)] float temperature = 0.5f;
 
     SpeechToTextGenerator generator;
+    Stopwatch timer = new Stopwatch();
 
     public ChatGenerator ChatGenerator => chat;
     public SpeechToTextGenerator SpeechToTextGenerator => generator;
 
-    private void Start()
+    public void Activate()
     {
-        generator = new SpeechToTextGenerator(recorder, prompt, model, temperature);
+        StartCoroutine(generator.GenerateText(prompt));
+    }
+
+    void Awake()
+    {
+        generator = new SpeechToTextGenerator(recorder, prompt, SpeechModel.Whisper_1, temperature);
+        generator.TextStart += OnTextStart;
         generator.TextComplete += OnTextComplete;
         chat.TextToSpeechComplete += OnTextToSpeechComplete;
-        StartCoroutine(generator.GenerateText(prompt));
+        timer.Start();
+    }
+
+    private void OnTextStart(object sender, TextEvent e)
+    {
+        timer.Restart();
     }
 
     private void OnTextComplete(object sender, TextEvent e)
     {
+        UnityEngine.Debug.Log($"Transcribed in {timer.ElapsedMilliseconds}ms");
         StartCoroutine(chat.GenerateChat(e.Message));
     }
 
     private void OnTextToSpeechComplete(object sender, TextToSpeechEvent e)
     {
+        UnityEngine.Debug.Log($"Responded after {timer.ElapsedMilliseconds}ms");
         StartCoroutine(generator.GenerateText(e.Text));
     }
 }

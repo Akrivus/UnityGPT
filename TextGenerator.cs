@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 public class TextGenerator : IEmbedding, IText, IToolCaller
 {
-    string prompt = "You are a helpful assistant inside of a Unity scene.";
-    string model = "gpt-3.5-turbo";
-    int maxTokens = 1024;
-    float temperature = 0.5F;
+    public string Prompt { get; set; } = "You are a helpful assistant that helps people with their computer problems.";
+    public TextModel Model { get; set; } = TextModel.GPT35_Turbo;
+    public int MaxTokens { get; set; } = 1024;
+    public float Temperature { get; set; } = 0.5F;
+
     bool hasSystemPrompt = true;
 
     List<Message> messages = new List<Message>();
@@ -18,23 +19,21 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     public event EventHandler<TextEvent> TextComplete;
     public event EventHandler<TextEvent> TextUpdate;
 
-    public string Prompt => prompt;
-
     List<Tool> tools => Tools.Select((kp) => kp.Value.Tool).ToList();
 
-    public TextGenerator(string prompt, string model, int maxTokens, float temperature, bool hasSystemPrompt = true)
+    public TextGenerator(string prompt, TextModel model, int maxTokens, float temperature, bool hasSystemPrompt = true)
     {
-        this.prompt = prompt;
-        this.model = model;
-        this.maxTokens = maxTokens;
-        this.temperature = temperature;
+        Prompt = prompt;
+        Model = model;
+        MaxTokens = maxTokens;
+        Temperature = temperature;
         this.hasSystemPrompt = hasSystemPrompt;
     }
 
     public async Task<string> GenerateTextAsync(string content)
     {
         if (hasSystemPrompt && messages.Count == 0)
-            messages.Add(new Message(prompt, Message.Roles.System));
+            messages.Add(new Message(Prompt, Message.Roles.System));
         messages.Add(new Message(content, Message.Roles.User));
         return await GenerateTextAsync(messages);
     }
@@ -42,14 +41,14 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     public IEnumerator GenerateText(string content)
     {
         if (hasSystemPrompt && messages.Count == 0)
-            messages.Add(new Message(prompt, Message.Roles.System));
+            messages.Add(new Message(Prompt, Message.Roles.System));
         messages.Add(new Message(content, Message.Roles.User));
         yield return GenerateText(messages);
     }
 
     public async Task<string> GenerateTextAsync(List<Message> messages)
     {
-        var req = new GenerateText(model, maxTokens, temperature, messages, tools);
+        var req = new GenerateText(Model, MaxTokens, Temperature, messages, tools);
         var res = await ChatGenerator.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
         if (res.ToolCall)
             await CallTools(res.ToolCalls);
@@ -58,7 +57,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
 
     public IEnumerator GenerateText(List<Message> messages)
     {
-        var req = new GenerateText(model, maxTokens, temperature, messages, tools);
+        var req = new GenerateText(Model, MaxTokens, Temperature, messages, tools);
         req.Stream = true;
         yield return ChatGenerator.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
             (chunk) => ProcessChunk(chunk),

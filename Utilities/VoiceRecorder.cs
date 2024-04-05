@@ -17,6 +17,8 @@ public class VoiceRecorder : MonoBehaviour
     [SerializeField] DeviceInfo[] devices;
     [SerializeField] int device = 0;
 
+    [Header("Debug")]
+    [SerializeField] float noiseLevel;
     [SerializeField] float _secondsOfSilence;
     [SerializeField] bool _isRecording;
     [SerializeField] bool _isVoiceDetected;
@@ -78,6 +80,7 @@ public class VoiceRecorder : MonoBehaviour
     {
         if (IsRecording) return;
         _isRecording = true;
+        _secondsOfSilence = 0;
         _clip = Microphone.Start(_device.Name, false, 120, _device.Frequency);
     }
 
@@ -98,11 +101,11 @@ public class VoiceRecorder : MonoBehaviour
 
     bool CheckVoice(float[] data)
     {
-        var noise = 0.0f;
+        noiseLevel = 0;
         for (var i = 0; i < data.Length; i++)
-            noise += Mathf.Abs(data[i]);
-        noise /= data.Length;
-        return noiseFloor <= noise;
+            noiseLevel += Mathf.Abs(data[i]);
+        noiseLevel /= data.Length;
+        return noiseFloor <= noiseLevel;
     }
 
     DeviceInfo SelectDevice(string name, int i)

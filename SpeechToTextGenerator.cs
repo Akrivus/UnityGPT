@@ -4,22 +4,22 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnityEngine;
-using static IText;
 
 public class SpeechToTextGenerator : IText
 {
     VoiceRecorder recorder;
     string prompt = "";
-    string model = "whisper-1";
+    SpeechModel model = SpeechModel.Whisper_1;
     float temperature = 0.5F;
     
     string _content;
 
+    public event EventHandler<TextEvent> TextStart;
     public event EventHandler<TextEvent> TextComplete;
 
     public string Prompt => prompt;
 
-    public SpeechToTextGenerator(VoiceRecorder recorder, string prompt, string model, float temperature)
+    public SpeechToTextGenerator(VoiceRecorder recorder, string prompt, SpeechModel model, float temperature)
     {
         this.recorder = recorder;
         this.prompt = prompt;
@@ -58,6 +58,7 @@ public class SpeechToTextGenerator : IText
 
     async void GenerateSpeechToText(AudioClip clip)
     {
+        TextStart?.Invoke(this, new TextEvent(null));
         var filename = $"record-{UnityEngine.Random.Range(1000, 9999)}.wav";
         if (!clip.Save(filename))
             return;
@@ -68,5 +69,6 @@ public class SpeechToTextGenerator : IText
             Temperature = temperature
         }.WithFile(filename));
         _content = res.Text;
+        File.Delete(filename);
     }
 }

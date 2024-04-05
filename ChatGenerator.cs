@@ -22,20 +22,21 @@ public class ChatGenerator : MonoBehaviour
 
     [TextArea(3, 10)]
     [SerializeField] string prompt = "You are a helpful assistant inside of a Unity scene.";
-    [SerializeField] string model = "gpt-3.5-turbo";
+    [SerializeField] TextModel model = TextModel.GPT35_Turbo;
+    [SerializeField] VoiceModel voiceModel = VoiceModel.TTS_1;
     [SerializeField] int maxTokens = 4096;
     [SerializeField] float temperature = 1.0f;
     [SerializeField] GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Onyx;
     [SerializeField] AudioSource source;
     [SerializeField, Range(0.8f, 1.2f)] float pitch = 1.0f;
     [SerializeField] WordMapping wordMapping;
-    [SerializeField] string message;
 
     TextGenerator text;
     TextToSpeechGenerator textToSpeech;
 
     Queue<TextToSpeech> lines = new Queue<TextToSpeech>();
 
+    string message;
     string _text;
     TextToSpeech _tts;
     bool _isTexting;
@@ -50,8 +51,8 @@ public class ChatGenerator : MonoBehaviour
         get => prompt;
         set
         {
-            prompt = value;
-            Text.ClearMessages();
+            prompt = text.Prompt = value;
+            text.ClearMessages();
         }
     }
 
@@ -94,7 +95,7 @@ public class ChatGenerator : MonoBehaviour
         text.TextUpdate += OnTextUpdate;
         text.TextComplete += OnTextComplete;
         text.AddTools(GetComponents<IToolCall>());
-        textToSpeech = new TextToSpeechGenerator(voice);
+        textToSpeech = new TextToSpeechGenerator(voiceModel, voice);
         textToSpeech.TextToSpeechStart += OnTextToSpeechStart;
 
         if (!string.IsNullOrEmpty(message))
