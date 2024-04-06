@@ -23,7 +23,7 @@ public class ChatGenerator : MonoBehaviour
     [TextArea(3, 10)]
     [SerializeField] string prompt = "You are a helpful assistant inside of a Unity scene.";
     [SerializeField] TextModel model = TextModel.GPT35_Turbo;
-    [SerializeField] VoiceModel voiceModel = VoiceModel.TTS_1;
+    [SerializeField] TextToSpeechModel voiceModel = TextToSpeechModel.TTS_1;
     [SerializeField] int maxTokens = 4096;
     [SerializeField] float temperature = 1.0f;
     [SerializeField] GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Onyx;

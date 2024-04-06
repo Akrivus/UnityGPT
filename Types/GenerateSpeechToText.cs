@@ -1,32 +1,43 @@
 ﻿using Newtonsoft.Json;
 using System.IO;
 using System.Net.Http;
+using UnityEditor;
 
 public class GenerateSpeechToText
 {
-    public SpeechModel Model { get; set; }
+    public SpeechToTextModel Model { get; set; }
     public string Prompt { get; set; }
     public float Temperature { get; set; }
 
-    public MultipartFormDataContent WithFile(string filename)
+    [JsonIgnore]
+    public byte[] Data { get; set; }
+
+    public GenerateSpeechToText(SpeechToTextModel model, string prompt, float temperature, byte[] data)
     {
-        var content = new MultipartFormDataContent();
-        var name = Path.GetFileName(filename);
-        content.Add(new ByteArrayContent(File.ReadAllBytes(filename)), "file", name);
-        content.Add(new StringContent(JsonConvert.SerializeObject(Model)), "model");
-        content.Add(new StringContent(Prompt), "prompt");
-        content.Add(new StringContent(Temperature.ToString()), "temperature");
-        return content;
+        Model = model;
+        Prompt = prompt;
+        Temperature = temperature;
+        Data = data;
+    }
+
+    public MultipartFormDataContent AsFormData()
+    {
+        return new MultipartFormDataContent
+        {
+            { new StringContent("whisper-1"), "model" },
+            { new StringContent(Prompt), "prompt" },
+            { new StringContent(Temperature.ToString()), "temperature" },
+            { new ByteArrayContent(Data), "file", "transcript.wav" }
+        };
+    }
+
+    public static MultipartFormDataContent AsFormData(SpeechToTextModel model, string prompt, float temperature, byte[] data)
+    {
+        return new GenerateSpeechToText(model, prompt, temperature, data).AsFormData();
     }
 }
 
 public class Transcription
 {
     public string Text { get; set; }
-}
-
-public enum SpeechModel
-{
-    [JsonProperty("whisper-1")]
-    Whisper_1,
 }

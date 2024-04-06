@@ -21,7 +21,7 @@ public class VoiceChatWithGPT : MonoBehaviour
 
     void Awake()
     {
-        generator = new SpeechToTextGenerator(recorder, prompt, SpeechModel.Whisper_1, temperature);
+        generator = new SpeechToTextGenerator(recorder, prompt, SpeechToTextModel.Whisper_1, temperature);
         generator.TextStart += OnTextStart;
         generator.TextComplete += OnTextComplete;
         chat.TextToSpeechComplete += OnTextToSpeechComplete;

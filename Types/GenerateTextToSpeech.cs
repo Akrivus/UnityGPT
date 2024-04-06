@@ -3,12 +3,12 @@ using UnityEngine;
 
 public class GenerateTextToSpeech
 {
-    public VoiceModel Model { get; set; }
+    public TextToSpeechModel Model { get; set; }
     public string Input { get; set; }
     public Voices Voice { get; set; } = Voices.Alloy;
     public Formats ResponseFormat { get; set; } = Formats.Wav;
 
-    public GenerateTextToSpeech(string input, Voices voice, VoiceModel model)
+    public GenerateTextToSpeech(string input, Voices voice, TextToSpeechModel model)
     {
         Input = input;
         Voice = voice;
@@ -44,12 +44,4 @@ public class TextToSpeech
     {
         Text = text;
     }
-}
-
-public enum VoiceModel
-{
-    [JsonProperty("tts-1")]
-    TTS_1,
-    [JsonProperty("tts-1-hd")]
-    TTS_1HD,
 }

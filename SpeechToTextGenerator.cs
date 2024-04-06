@@ -9,7 +9,7 @@ public class SpeechToTextGenerator : IText
 {
     VoiceRecorder recorder;
     string prompt = "";
-    SpeechModel model = SpeechModel.Whisper_1;
+    SpeechToTextModel model = SpeechToTextModel.Whisper_1;
     float temperature = 0.5F;
     
     string _content;
@@ -19,7 +19,7 @@ public class SpeechToTextGenerator : IText
 
     public string Prompt => prompt;
 
-    public SpeechToTextGenerator(VoiceRecorder recorder, string prompt, SpeechModel model, float temperature)
+    public SpeechToTextGenerator(VoiceRecorder recorder, string prompt, SpeechToTextModel model, float temperature)
     {
         this.recorder = recorder;
         this.prompt = prompt;
@@ -29,8 +29,8 @@ public class SpeechToTextGenerator : IText
 
     public async Task<string> GenerateTextAsync(string content)
     {
-        recorder.OnRecordStop -= GenerateSpeechToText;
-        recorder.OnRecordStop += GenerateSpeechToText;
+        recorder.OnRecordStop -= UploadAudioAndGenerateText;
+        recorder.OnRecordStop += UploadAudioAndGenerateText;
         recorder.Record();
         prompt = content;
         _content = string.Empty;
@@ -42,8 +42,8 @@ public class SpeechToTextGenerator : IText
 
     public IEnumerator GenerateText(string content)
     {
-        recorder.OnRecordStop -= GenerateSpeechToText;
-        recorder.OnRecordStop += GenerateSpeechToText;
+        recorder.OnRecordStop -= UploadAudioAndGenerateText;
+        recorder.OnRecordStop += UploadAudioAndGenerateText;
         recorder.Record();
         prompt = content;
         _content = string.Empty;
@@ -56,19 +56,10 @@ public class SpeechToTextGenerator : IText
 
     }
 
-    async void GenerateSpeechToText(AudioClip clip)
+    async void UploadAudioAndGenerateText(AudioClip clip)
     {
         TextStart?.Invoke(this, new TextEvent(null));
-        var filename = $"record-{UnityEngine.Random.Range(1000, 9999)}.wav";
-        if (!clip.Save(filename))
-            return;
-        filename = Path.Combine(Application.persistentDataPath, filename);
-        var res = await ChatGenerator.API.SendMultiPartAsync<Transcription>(HttpMethod.Post, "audio/transcriptions", new GenerateSpeechToText()
-        {
-            Model = model, Prompt = prompt,
-            Temperature = temperature
-        }.WithFile(filename));
+        var res = await ChatGenerator.API.SendMultiPartAsync<Transcription>(HttpMethod.Post, "audio/transcriptions", GenerateSpeechToText.AsFormData(model, prompt, temperature, clip.ToByteArray(recorder.NoiseFloor)));
         _content = res.Text;
-        File.Delete(filename);
     }
 }

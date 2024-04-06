@@ -30,6 +30,7 @@ public class VoiceRecorder : MonoBehaviour
     public int SecondsOfSilence => (int)_secondsOfSilence;
     public bool IsRecording => _isRecording;
     public bool IsVoiceDetected => _isVoiceDetected;
+    public float NoiseFloor => noiseFloor;
 
     void Awake()
     {
@@ -66,13 +67,10 @@ public class VoiceRecorder : MonoBehaviour
 
     bool GetVoiceFrom(float[] data)
     {
-        _secondsOfSilence = (float)_stopwatch.Elapsed.TotalSeconds;
         var voice = CheckVoice(data);
-        if (voice && !_isVoiceDetected)
-            _secondsOfSilence = 0;
-        else if (!voice)
-            if (_secondsOfSilence > maxPauseLength)
-                StopRecord();
+        _secondsOfSilence = voice ? 0 : (float)_stopwatch.Elapsed.TotalSeconds;
+        if (_secondsOfSilence > maxPauseLength)
+            StopRecord();
         return voice;
     }
 
@@ -80,7 +78,7 @@ public class VoiceRecorder : MonoBehaviour
     {
         if (IsRecording) return;
         _isRecording = true;
-        _secondsOfSilence = 0;
+        _stopwatch.Restart();
         _clip = Microphone.Start(_device.Name, false, 120, _device.Frequency);
     }
 

@@ -5,13 +5,13 @@ using UnityEngine;
 
 public class TextToSpeechGenerator : ITextToSpeech
 {
-    VoiceModel model = VoiceModel.TTS_1;
+    TextToSpeechModel model = TextToSpeechModel.TTS_1;
     GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Echo;
 
     public event EventHandler<TextToSpeechEvent> TextToSpeechStart;
     public event EventHandler<TextToSpeechEvent> TextToSpeechComplete;
 
-    public TextToSpeechGenerator(VoiceModel model, GenerateTextToSpeech.Voices voice)
+    public TextToSpeechGenerator(TextToSpeechModel model, GenerateTextToSpeech.Voices voice)
     {
         this.model = model;
         this.voice = voice;

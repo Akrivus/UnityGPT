@@ -129,13 +129,3 @@ public class Choice
         public override Message Message => Delta;
     }
 }
-
-public enum TextModel
-{
-    [JsonProperty("gpt-3.5-turbo")]
-    GPT35_Turbo,
-    [JsonProperty("gpt-4")]
-    GPT4,
-    [JsonProperty("gpt-4-turbo")]
-    GPT4_Turbo
-}
