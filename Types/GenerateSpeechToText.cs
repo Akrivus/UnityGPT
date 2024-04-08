@@ -5,16 +5,14 @@ using UnityEditor;
 
 public class GenerateSpeechToText
 {
-    public SpeechToTextModel Model { get; set; }
     public string Prompt { get; set; }
     public float Temperature { get; set; }
 
     [JsonIgnore]
     public byte[] Data { get; set; }
 
-    public GenerateSpeechToText(SpeechToTextModel model, string prompt, float temperature, byte[] data)
+    public GenerateSpeechToText(string prompt, float temperature, byte[] data)
     {
-        Model = model;
         Prompt = prompt;
         Temperature = temperature;
         Data = data;
@@ -31,9 +29,9 @@ public class GenerateSpeechToText
         };
     }
 
-    public static MultipartFormDataContent AsFormData(SpeechToTextModel model, string prompt, float temperature, byte[] data)
+    public static MultipartFormDataContent AsFormData(string prompt, float temperature, byte[] data)
     {
-        return new GenerateSpeechToText(model, prompt, temperature, data).AsFormData();
+        return new GenerateSpeechToText(prompt, temperature, data).AsFormData();
     }
 }
 

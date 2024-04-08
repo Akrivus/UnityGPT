@@ -32,7 +32,7 @@ public enum TextToSpeechModel
 }
 
 [JsonConverter(typeof(StringEnumConverter))]
-public enum SpeechToTextModel
+public enum WhisperModel
 {
     [EnumMember(Value = "whisper-1")]
     Whisper_1,
