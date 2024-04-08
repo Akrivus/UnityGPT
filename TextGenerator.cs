@@ -16,8 +16,9 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     List<Message> messages = new List<Message>();
     Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
 
-    public event EventHandler<TextEvent> TextComplete;
-    public event EventHandler<TextEvent> TextUpdate;
+    public event EventHandler<TextEventArgs> TextComplete;
+    public event EventHandler<TextEventArgs> TextUpdate;
+    public event EventHandler<MessagesClearedEventArgs> MessagesCleared;
 
     List<Tool> tools => Tools.Select((kp) => kp.Value.Tool).ToList();
 
@@ -49,7 +50,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     public async Task<string> GenerateTextAsync(List<Message> messages)
     {
         var req = new GenerateText(Model, MaxTokens, Temperature, messages, tools);
-        var res = await ChatGenerator.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
+        var res = await ChatAgent.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
         if (res.ToolCall)
             await CallTools(res.ToolCalls);
         return res.Content;
@@ -59,7 +60,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     {
         var req = new GenerateText(Model, MaxTokens, Temperature, messages, tools);
         req.Stream = true;
-        yield return ChatGenerator.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
+        yield return ChatAgent.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
             (chunk) => ProcessChunk(chunk),
             (chunks) => ProcessChunks(chunks));
     }
@@ -67,7 +68,7 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
     void ProcessChunk(GeneratedText<Choice.Chunk> chunk)
     {
         if (chunk.ToolCall) CallTools(chunk.ToolCalls).Wait();
-        TextUpdate?.Invoke(this, new TextEvent(chunk.Choice.Content));
+        TextUpdate?.Invoke(this, new TextEventArgs(chunk.Choice.Content));
     }
 
     void ProcessChunks(List<GeneratedText<Choice.Chunk>> chunks)
@@ -76,13 +77,19 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
         var content = string.Join("", chunks.Select((chunk) => chunk.Content));
         var message = new Message(content, Message.Roles.System);
         messages.Add(message);
-        TextComplete?.Invoke(this, new TextEvent(message.Content));
+        TextComplete?.Invoke(this, new TextEventArgs(message.Content));
+    }
+
+    public void ClearMessages()
+    {
+        MessagesCleared?.Invoke(this, new MessagesClearedEventArgs(messages.ToArray()));
+        messages.Clear();
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text)
     {
         var req = new GenerateEmbedding(text);
-        var res = await ChatGenerator.API.PostAsync<GeneratedEmbedding>("embeddings", req);
+        var res = await ChatAgent.API.PostAsync<GeneratedEmbedding>("embeddings", req);
         return res.Embedding;
     }
 
@@ -111,8 +118,14 @@ public class TextGenerator : IEmbedding, IText, IToolCaller
             Tools.Add(tool.Tool.Name, tool);
     }
 
-    public void ClearMessages()
+    public void RemoveTool(string name)
     {
-        messages.Clear();
+        Tools.Remove(name);
+    }
+
+    public void RemoveTools(params string[] names)
+    {
+        foreach (var name in names)
+            Tools.Remove(name);
     }
 }

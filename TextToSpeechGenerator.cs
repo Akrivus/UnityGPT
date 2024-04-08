@@ -8,8 +8,8 @@ public class TextToSpeechGenerator : ITextToSpeech
     TextToSpeechModel model = TextToSpeechModel.TTS_1;
     GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Echo;
 
-    public event EventHandler<TextToSpeechEvent> TextToSpeechStart;
-    public event EventHandler<TextToSpeechEvent> TextToSpeechComplete;
+    public event EventHandler<TextToSpeechEventArgs> TextToSpeechStart;
+    public event EventHandler<TextToSpeechEventArgs> TextToSpeechComplete;
 
     public TextToSpeechGenerator(TextToSpeechModel model, GenerateTextToSpeech.Voices voice)
     {
@@ -20,7 +20,7 @@ public class TextToSpeechGenerator : ITextToSpeech
     public async Task<AudioClip> GenerateSpeechAsync(string text)
     {
         var body = QuickJSON.Serialize(new GenerateTextToSpeech(text, voice, model));
-        var res = await ChatGenerator.API.CleanSendAsync(HttpMethod.Post, "audio/speech", body);
+        var res = await ChatAgent.API.CleanSendAsync(HttpMethod.Post, "audio/speech", body);
         var bytes = await res.Content.ReadAsByteArrayAsync();
         var samples = new float[bytes.Length / 4];
         for (int i = 0; i < samples.Length; i++)
@@ -32,8 +32,8 @@ public class TextToSpeechGenerator : ITextToSpeech
 
     public async void GenerateSpeech(TextToSpeech tts)
     {
-        TextToSpeechStart?.Invoke(this, new TextToSpeechEvent(tts.Text));
+        TextToSpeechStart?.Invoke(this, new TextToSpeechEventArgs(tts.Text));
         tts.Speech = await GenerateSpeechAsync(tts.Text);
-        TextToSpeechComplete?.Invoke(this, new TextToSpeechEvent(tts.Text, tts.Speech));
+        TextToSpeechComplete?.Invoke(this, new TextToSpeechEventArgs(tts.Text, tts.Speech));
     }
 }

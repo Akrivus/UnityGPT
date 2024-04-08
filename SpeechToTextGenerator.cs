@@ -14,8 +14,8 @@ public class SpeechToTextGenerator : IText
     
     string _content;
 
-    public event EventHandler<TextEvent> TextStart;
-    public event EventHandler<TextEvent> TextComplete;
+    public event EventHandler<TextEventArgs> TextStart;
+    public event EventHandler<TextEventArgs> TextComplete;
 
     public string Prompt => prompt;
 
@@ -36,7 +36,7 @@ public class SpeechToTextGenerator : IText
         _content = string.Empty;
         while (string.IsNullOrEmpty(_content))
             await Task.Yield();
-        TextComplete?.Invoke(this, new TextEvent(_content));
+        TextComplete?.Invoke(this, new TextEventArgs(_content));
         return _content;
     }
 
@@ -48,7 +48,7 @@ public class SpeechToTextGenerator : IText
         prompt = content;
         _content = string.Empty;
         yield return new WaitUntil(() => !string.IsNullOrEmpty(_content));
-        TextComplete?.Invoke(this, new TextEvent(_content));
+        TextComplete?.Invoke(this, new TextEventArgs(_content));
     }
 
     public void ClearMessages()
@@ -58,8 +58,8 @@ public class SpeechToTextGenerator : IText
 
     async void UploadAudioAndGenerateText(AudioClip clip)
     {
-        TextStart?.Invoke(this, new TextEvent(null));
-        var res = await ChatGenerator.API.SendMultiPartAsync<Transcription>(HttpMethod.Post, "audio/transcriptions", GenerateSpeechToText.AsFormData(model, prompt, temperature, clip.ToByteArray(recorder.NoiseFloor)));
+        TextStart?.Invoke(this, new TextEventArgs(null));
+        var res = await ChatAgent.API.SendMultiPartAsync<Transcription>(HttpMethod.Post, "audio/transcriptions", GenerateSpeechToText.AsFormData(model, prompt, temperature, clip.ToByteArray(recorder.NoiseFloor)));
         _content = res.Text;
     }
 }

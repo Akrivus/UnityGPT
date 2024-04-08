@@ -4,22 +4,22 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class ChatGenerator : MonoBehaviour, IText
+public class ChatAgent : MonoBehaviour, IText
 {
     public readonly static RestClient API = new RestClient("https://api.openai.com/v1", Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
     readonly static string[] StopCodes = new string[] { ".", "?", "!", "\n" };
 
-    public event EventHandler<TextEvent> TextStart;
-    public event EventHandler<TextEvent> TextUpdate;
-    public event EventHandler<TextEvent> TextComplete;
+    public event EventHandler<TextEventArgs> TextStart;
+    public event EventHandler<TextEventArgs> TextUpdate;
+    public event EventHandler<TextEventArgs> TextComplete;
 
-    public event EventHandler<TextToSpeechEvent> TextToSpeechStart;
-    public event EventHandler<TextToSpeechEvent> TextToSpeechUpdate;
-    public event EventHandler<TextToSpeechEvent> TextToSpeechComplete;
+    public event EventHandler<TextToSpeechEventArgs> TextToSpeechStart;
+    public event EventHandler<TextToSpeechEventArgs> TextToSpeechUpdate;
+    public event EventHandler<TextToSpeechEventArgs> TextToSpeechComplete;
 
-    public event EventHandler<ChatEvent> ChatStart;
-    public event EventHandler<ChatEvent> ChatUpdate;
-	public event EventHandler<ChatEvent> ChatComplete;
+    public event EventHandler<ChatEventArgs> ChatStart;
+    public event EventHandler<ChatEventArgs> ChatUpdate;
+	public event EventHandler<ChatEventArgs> ChatComplete;
 
     [TextArea(3, 10)]
     [SerializeField] string prompt = "You are a helpful assistant inside of a Unity scene.";
@@ -63,7 +63,7 @@ public class ChatGenerator : MonoBehaviour, IText
         private set
         {
             _isTexting = value;
-            (value ? TextStart : TextComplete)?.Invoke(this, new TextEvent(message));
+            (value ? TextStart : TextComplete)?.Invoke(this, new TextEventArgs(message));
         }
     }
     public bool IsTalking
@@ -72,7 +72,7 @@ public class ChatGenerator : MonoBehaviour, IText
         private set
         {
             _isTalking = value;
-            (value ? TextToSpeechStart : TextToSpeechComplete)?.Invoke(this, new TextToSpeechEvent(message));
+            (value ? TextToSpeechStart : TextToSpeechComplete)?.Invoke(this, new TextToSpeechEventArgs(message));
         }
     }
     public bool IsComplete
@@ -81,7 +81,7 @@ public class ChatGenerator : MonoBehaviour, IText
         private set
         {
             _isComplete = value;
-            (value ? ChatComplete : ChatStart)?.Invoke(this, new ChatEvent(message));
+            (value ? ChatComplete : ChatStart)?.Invoke(this, new ChatEventArgs(message));
         }
     }
 
@@ -115,7 +115,7 @@ public class ChatGenerator : MonoBehaviour, IText
         {
             if (!tts.IsReady || source.isPlaying)
                 return;
-            TextToSpeechUpdate?.Invoke(this, new TextToSpeechEvent(tts.Text));
+            TextToSpeechUpdate?.Invoke(this, new TextToSpeechEventArgs(tts.Text));
             source.pitch = pitch;
             source.clip = tts.Speech;
             source.Play();
@@ -123,7 +123,7 @@ public class ChatGenerator : MonoBehaviour, IText
         }
     }
 
-    void OnTextUpdate(object sender, TextEvent e)
+    void OnTextUpdate(object sender, TextEventArgs e)
     {
         var content = e.Message ?? string.Empty;
         messageBuffer += content;
@@ -137,19 +137,19 @@ public class ChatGenerator : MonoBehaviour, IText
         messageTTS = new TextToSpeech(wordMapping.Filter(messageBuffer));
         lines.Enqueue(messageTTS);
         textToSpeech.GenerateSpeech(messageTTS);
-        TextUpdate?.Invoke(this, new TextEvent(messageBuffer));
+        TextUpdate?.Invoke(this, new TextEventArgs(messageBuffer));
         messageBuffer = string.Empty;
     }
 
-    void OnTextComplete(object sender, TextEvent e)
+    void OnTextComplete(object sender, TextEventArgs e)
     {
         IsTexting = false;
     }
 
-    void OnTextToSpeechStart(object sender, TextToSpeechEvent e)
+    void OnTextToSpeechStart(object sender, TextToSpeechEventArgs e)
     {
         IsTalking = true;
-        ChatUpdate?.Invoke(this, new ChatEvent(e.Text));
+        ChatUpdate?.Invoke(this, new ChatEventArgs(e.Text));
     }
 
     public Task<string> GenerateTextAsync(string content)
@@ -175,11 +175,11 @@ public class ChatGenerator : MonoBehaviour, IText
     }
 }
 
-public class ChatEvent : EventArgs
+public class ChatEventArgs : EventArgs
 {
     public string Message { get; set; }
 
-    public ChatEvent(string message)
+    public ChatEventArgs(string message)
     {
         Message = message;
     }

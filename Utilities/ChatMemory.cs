@@ -3,18 +3,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[RequireComponent(typeof(ChatGenerator))]
+[RequireComponent(typeof(ChatAgent))]
 public class ChatMemory : MonoBehaviour, IVectorDB
 {
     [SerializeField] List<VectorString> data = new List<VectorString>();
     
-    ChatGenerator chat;
+    ChatAgent chat;
     IText text;
     IEmbedding embedding;
 
     void Awake()
     {
-        chat = GetComponent<ChatGenerator>();
+        chat = GetComponent<ChatAgent>();
         text = chat;
         embedding = chat.Embeddings;
     }
