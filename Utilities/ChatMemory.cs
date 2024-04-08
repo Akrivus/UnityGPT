@@ -15,7 +15,7 @@ public class ChatMemory : MonoBehaviour, IVectorDB
     void Awake()
     {
         chat = GetComponent<ChatGenerator>();
-        text = chat.Text;
+        text = chat;
         embedding = chat.Embeddings;
     }
 

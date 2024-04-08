@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
-public class ChatGenerator : MonoBehaviour
+public class ChatGenerator : MonoBehaviour, IText
 {
     public readonly static RestClient API = new RestClient("https://api.openai.com/v1", Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
     readonly static string[] StopCodes = new string[] { ".", "?", "!", "\n" };
@@ -37,15 +38,15 @@ public class ChatGenerator : MonoBehaviour
     Queue<TextToSpeech> lines = new Queue<TextToSpeech>();
 
     string message;
-    string _text;
-    TextToSpeech _tts;
+    string messageBuffer;
+    TextToSpeech messageTTS;
     bool _isTexting;
     bool _isTalking;
     bool _isComplete;
 
     public IEmbedding Embeddings => text;
-    public IText Text => text;
     public ITextToSpeech TextToSpeech => textToSpeech;
+
     public string SystemPrompt
     {
         get => prompt;
@@ -99,7 +100,7 @@ public class ChatGenerator : MonoBehaviour
         textToSpeech.TextToSpeechStart += OnTextToSpeechStart;
 
         if (!string.IsNullOrEmpty(message))
-            StartCoroutine(GenerateChat(message));
+            StartCoroutine(GenerateText(message));
         if (wordMapping == null)
             wordMapping = ScriptableObject.CreateInstance<WordMapping>();
     }
@@ -125,19 +126,19 @@ public class ChatGenerator : MonoBehaviour
     void OnTextUpdate(object sender, TextEvent e)
     {
         var content = e.Message ?? string.Empty;
-        _text += content;
+        messageBuffer += content;
         var matches = false;
         foreach (var code in StopCodes)
             if (content.Contains(code))
                 matches = true;
         if (!matches)
             return;
-        message += _text;
-        _tts = new TextToSpeech(wordMapping.Filter(_text));
-        lines.Enqueue(_tts);
-        textToSpeech.GenerateSpeech(_tts);
-        TextUpdate?.Invoke(this, new TextEvent(_text));
-        _text = string.Empty;
+        message += messageBuffer;
+        messageTTS = new TextToSpeech(wordMapping.Filter(messageBuffer));
+        lines.Enqueue(messageTTS);
+        textToSpeech.GenerateSpeech(messageTTS);
+        TextUpdate?.Invoke(this, new TextEvent(messageBuffer));
+        messageBuffer = string.Empty;
     }
 
     void OnTextComplete(object sender, TextEvent e)
@@ -151,13 +152,26 @@ public class ChatGenerator : MonoBehaviour
         ChatUpdate?.Invoke(this, new ChatEvent(e.Text));
     }
 
-    public IEnumerator GenerateChat(string content)
+    public Task<string> GenerateTextAsync(string content)
     {
-        if (IsExited) yield break;
-        message = _text = string.Empty;
+        message = messageBuffer = string.Empty;
+        IsTexting = true;
+        IsComplete = false;
+        return text.GenerateTextAsync(content);
+    }
+
+    public IEnumerator GenerateText(string content)
+    {
+        message = messageBuffer = string.Empty;
         IsTexting = true;
         IsComplete = false;
         yield return text.GenerateText(content);
+    }
+
+    public void ClearMessages()
+    {
+        message = messageBuffer = string.Empty;
+        text.ClearMessages();
     }
 }
 

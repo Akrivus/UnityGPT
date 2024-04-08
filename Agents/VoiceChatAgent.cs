@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using UnityEngine;
 
-public class VoiceChatWithGPT : MonoBehaviour
+public class VoiceChatAgent : MonoBehaviour
 {
     [SerializeField] VoiceRecorder recorder;
     [SerializeField] ChatGenerator chat;
@@ -36,7 +36,7 @@ public class VoiceChatWithGPT : MonoBehaviour
     private void OnTextComplete(object sender, TextEvent e)
     {
         UnityEngine.Debug.Log($"Transcribed in {timer.ElapsedMilliseconds}ms");
-        StartCoroutine(chat.GenerateChat(e.Message));
+        StartCoroutine(chat.GenerateText(e.Message));
     }
 
     private void OnTextToSpeechComplete(object sender, TextToSpeechEvent e)
