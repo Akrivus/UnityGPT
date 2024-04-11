@@ -2,6 +2,8 @@
 using System.IO;
 using System.Net.Http;
 using UnityEditor;
+using UnityEngine;
+using UnityEngine.Profiling;
 
 public class GenerateSpeechToText
 {
@@ -18,20 +20,15 @@ public class GenerateSpeechToText
         Data = data;
     }
 
-    public MultipartFormDataContent AsFormData()
-    {
-        return new MultipartFormDataContent
-        {
-            { new StringContent("whisper-1"), "model" },
-            { new StringContent(Prompt), "prompt" },
-            { new StringContent(Temperature.ToString()), "temperature" },
-            { new ByteArrayContent(Data), "file", "transcript.wav" }
-        };
-    }
+    public WWWForm FormData => GenerateFormData(new WWWForm());
 
-    public static MultipartFormDataContent AsFormData(string prompt, float temperature, byte[] data)
+    WWWForm GenerateFormData(WWWForm form)
     {
-        return new GenerateSpeechToText(prompt, temperature, data).AsFormData();
+        form.AddField("model", "whisper-1");
+        form.AddField("prompt", Prompt);
+        form.AddField("temperature", Temperature.ToString());
+        form.AddBinaryData("file", Data, "speech.wav");
+        return form;
     }
 }
 

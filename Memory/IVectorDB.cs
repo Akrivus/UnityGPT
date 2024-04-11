@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Threading.Tasks;
 using UnityEngine;
 
 public interface IVectorDB
 {
     void Add(string content, float[] vector);
-    Task AddAsync(string content);
+    void Add(string content);
     VectorResult[] Find(float[] vector, int count = 1);
 
     public static float Distance(float[] a, float[] b)

@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using RSG;
 
 public interface IEmbedding
 {
-    public Task<float[]> GenerateEmbeddingAsync(string text);
+    public IPromise<float[]> FetchEmbeddingFor(string text);
 }

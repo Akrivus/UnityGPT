@@ -1,131 +1,149 @@
-﻿using System;
-using System.Collections;
+﻿using Proyecto26;
+using RSG;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-public class TextGenerator : IEmbedding, IText, IToolCaller
+using static Message;
+
+public class TextGenerator : IText
 {
-    public string Prompt { get; set; } = "You are a helpful assistant that helps people with their computer problems.";
+    const string URI = "https://api.openai.com/v1/chat/completions";
+
     public TextModel Model { get; set; } = TextModel.GPT35_Turbo;
     public int MaxTokens { get; set; } = 1024;
     public float Temperature { get; set; } = 0.5F;
-
-    bool hasSystemPrompt = true;
-
-    List<Message> messages = new List<Message>();
-    Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
-
-    public event EventHandler<TextEventArgs> TextComplete;
-    public event EventHandler<TextEventArgs> TextUpdate;
-    public event EventHandler<MessagesClearedEventArgs> MessagesCleared;
-
-    List<Tool> tools => Tools.Select((kp) => kp.Value.Tool).ToList();
-
-    public TextGenerator(string prompt, TextModel model, int maxTokens, float temperature, bool hasSystemPrompt = true)
+    public string ToolChoice { get; set; } = "auto";
+    public string Prompt
     {
-        Prompt = prompt;
+        get => prompt;
+        set
+        {
+            prompt = value;
+            AddSystemPrompt();
+        }
+    }
+
+    public event EventHandler<GeneratedTextReceivedEventArgs<Choice>> OnGeneratedTextReceived;
+    public event EventHandler<GeneratedTextReceivedEventArgs<Choice.Chunk>> OnGeneratedTextStreamReceived;
+    public event EventHandler<GeneratedTextStreamEndedEventArgs> OnGeneratedTextStreamEnded;
+
+    protected List<Tool> tools = new List<Tool>();
+    protected List<Message> messages = new List<Message>();
+    protected string prompt;
+    protected string message;
+
+    public TextGenerator(TextModel model, int maxTokens = 1024, float temperature = 0.5f)
+    {
         Model = model;
         MaxTokens = maxTokens;
         Temperature = temperature;
-        this.hasSystemPrompt = hasSystemPrompt;
     }
 
-    public async Task<string> GenerateTextAsync(string content)
+    public void Tell(string content)
     {
-        if (hasSystemPrompt && messages.Count == 0)
-            messages.Add(new Message(Prompt, Message.Roles.System));
-        messages.Add(new Message(content, Message.Roles.User));
-        return await GenerateTextAsync(messages);
+        messages.Add(new Message(content, Roles.User));
     }
 
-    public IEnumerator GenerateText(string content)
+    public IPromise<string> Ask(string content)
     {
-        if (hasSystemPrompt && messages.Count == 0)
-            messages.Add(new Message(Prompt, Message.Roles.System));
-        messages.Add(new Message(content, Message.Roles.User));
-        yield return GenerateText(messages);
+        Tell(content);
+        return Listen();
     }
 
-    public async Task<string> GenerateTextAsync(List<Message> messages)
+    public IPromise<string> Ask(string content, Action<string> tokenCallback)
     {
-        var req = new GenerateText(Model, MaxTokens, Temperature, messages, tools);
-        var res = await ChatAgent.API.PostAsync<GeneratedText<Choice>>("chat/completions", req);
-        if (res.ToolCall)
-            await CallTools(res.ToolCalls);
-        return res.Content;
+        Tell(content);
+        return Listen(tokenCallback);
     }
 
-    public IEnumerator GenerateText(List<Message> messages)
+    public IPromise<string> Listen()
     {
-        var req = new GenerateText(Model, MaxTokens, Temperature, messages, tools);
-        req.Stream = true;
-        yield return ChatAgent.API.PostForSSE<GeneratedText<Choice.Chunk>>("chat/completions", req,
-            (chunk) => ProcessChunk(chunk),
-            (chunks) => ProcessChunks(chunks));
+        var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, ToolChoice);
+        return RestClientExtensions.Post<GeneratedText<Choice>>(URI, body).Then(text => DispatchGeneratedText(text));
     }
 
-    void ProcessChunk(GeneratedText<Choice.Chunk> chunk)
+    public IPromise<string> Listen(Action<string> tokenCallback)
     {
-        if (chunk.ToolCall) CallTools(chunk.ToolCalls).Wait();
-        TextUpdate?.Invoke(this, new TextEventArgs(chunk.Choice.Content));
+        var sse = new ServerSentEventHandler<GeneratedText<Choice.Chunk>>();
+        sse.OnServerSentEvent += (e) => tokenCallback(DispatchGeneratedTextChunk(e.Data));
+
+        message = string.Empty;
+
+        var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, ToolChoice, true);
+        return RestClient.Post(new RequestHelper
+        {
+            Uri = URI,
+            BodyString = RestClientExtensions.Serialize(body),
+            DownloadHandler = sse
+        }).Then((helper) => DispatchGeneratedText(message));
     }
 
-    void ProcessChunks(List<GeneratedText<Choice.Chunk>> chunks)
+    public void ResetContext()
     {
-        var choices = chunks.Select((chunk) => chunk.Choice).Where((choice) => choice.Content != null).ToList();
-        var content = string.Join("", chunks.Select((chunk) => chunk.Content));
-        var message = new Message(content, Message.Roles.System);
-        messages.Add(message);
-        TextComplete?.Invoke(this, new TextEventArgs(message.Content));
+        throw new NotImplementedException();
     }
 
-    public void ClearMessages()
+    public virtual void AddTool(params IToolCall[] toolCalls)
     {
-        MessagesCleared?.Invoke(this, new MessagesClearedEventArgs(messages.ToArray()));
-        messages.Clear();
+        foreach (var toolCall in toolCalls)
+            tools.Add(toolCall.Tool);
     }
 
-    public async Task<float[]> GenerateEmbeddingAsync(string text)
-    {
-        var req = new GenerateEmbedding(text);
-        var res = await ChatAgent.API.PostAsync<GeneratedEmbedding>("embeddings", req);
-        return res.Embedding;
-    }
-
-    public void CallTool(ToolCallReference tool, IToolCall toolCall)
-    {
-        var arg = toolCall.EntryPoint.Invoke(toolCall, new object[] { QuickJSON.Deserialize(tool.Function.Arguments, toolCall.ArgType) });
-        var content = QuickJSON.Serialize(arg);
-        messages.Add(new Message(content, tool));
-    }
-
-    async Task<string> CallTools(List<ToolCallReference> tools)
-    {
-        foreach (var tool in tools)
-            CallTool(tool, Tools[tool.Function.Name]);
-        return await GenerateTextAsync(messages);
-    }
-
-    public void AddTool(string name, IToolCall tool)
-    {
-        Tools.Add(name, tool);
-    }
-
-    public void AddTools(params IToolCall[] tools)
-    {
-        foreach (var tool in tools)
-            Tools.Add(tool.Tool.Name, tool);
-    }
-
-    public void RemoveTool(string name)
-    {
-        Tools.Remove(name);
-    }
-
-    public void RemoveTools(params string[] names)
+    public virtual void RemoveTool(params string[] names)
     {
         foreach (var name in names)
-            Tools.Remove(name);
+            tools.RemoveAll(tool => tool.Name == name);
+    }
+
+    public virtual void AddResult(ToolCallReference tool, string result)
+    {
+        messages.Add(new Message(result, Roles.Tool, tool.Function.Name, tool.Id));
+    }
+
+    public void AddSystemPrompt()
+    {
+        if (!string.IsNullOrEmpty(prompt) && messages.Count == 0)
+            messages.Add(new Message(prompt, Roles.System));
+    }
+
+    private string DispatchGeneratedText(GeneratedText<Choice> text)
+    {
+        messages.Add(text.Choice.Message);
+        OnGeneratedTextReceived?.Invoke(this, new GeneratedTextReceivedEventArgs<Choice>(text));
+        return text.Content;
+    }
+
+    private string DispatchGeneratedTextChunk(GeneratedText<Choice.Chunk> text)
+    {
+        message += text.Content;
+        OnGeneratedTextStreamReceived?.Invoke(this, new GeneratedTextReceivedEventArgs<Choice.Chunk>(text));
+        return text.Content;
+    }
+
+    private string DispatchGeneratedText(string message)
+    {
+        OnGeneratedTextStreamEnded?.Invoke(this, new GeneratedTextStreamEndedEventArgs(message));
+        return message;
+    }
+}
+
+public class GeneratedTextReceivedEventArgs<T> : EventArgs where T : Choice
+{
+    public GeneratedText<T> GeneratedText { get; private set; }
+    public string Content => GeneratedText.Content;
+
+    public GeneratedTextReceivedEventArgs(GeneratedText<T> text)
+    {
+        GeneratedText = text;
+    }
+}
+
+public class GeneratedTextStreamEndedEventArgs : EventArgs
+{
+    public string Content { get; private set; }
+
+    public GeneratedTextStreamEndedEventArgs(string content)
+    {
+        Content = content;
     }
 }

@@ -1,39 +1,48 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+﻿using Proyecto26;
+using RSG;
+using System;
 using UnityEngine;
+
+using static GenerateTextToSpeech;
 
 public class TextToSpeechGenerator : ITextToSpeech
 {
+    const string URI = "https://api.openai.com/v1/audio/speech";
+
+    public event EventHandler<TextToSpeechEventArgs> OnGenerated;
+
     TextToSpeechModel model = TextToSpeechModel.TTS_1;
-    GenerateTextToSpeech.Voices voice = GenerateTextToSpeech.Voices.Echo;
+    Voices voice = Voices.Echo;
 
-    public event EventHandler<TextToSpeechEventArgs> TextToSpeechStart;
-    public event EventHandler<TextToSpeechEventArgs> TextToSpeechComplete;
+    string text;
 
-    public TextToSpeechGenerator(TextToSpeechModel model, GenerateTextToSpeech.Voices voice)
+    public TextToSpeechGenerator(TextToSpeechModel model, Voices voice)
     {
         this.model = model;
         this.voice = voice;
     }
 
-    public async Task<AudioClip> GenerateSpeechAsync(string text)
+    public IPromise<TextToSpeech> Say(string text)
     {
-        var body = QuickJSON.Serialize(new GenerateTextToSpeech(text, voice, model));
-        var res = await ChatAgent.API.CleanSendAsync(HttpMethod.Post, "audio/speech", body);
-        var bytes = await res.Content.ReadAsByteArrayAsync();
-        var samples = new float[bytes.Length / 4];
-        for (int i = 0; i < samples.Length; i++)
-            samples[i] = (float)(BitConverter.ToInt32(bytes, i * 4)) / int.MaxValue;
-        var clip = AudioClip.Create("Speech", samples.Length, 1, 12000, false);
-        clip.SetData(samples, 0);
-        return clip;
+        var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, voice, model));
+        return RestClient.Post(URI, body)
+            .Then((helper) => Generate(text, helper.Data))
+            .Then((tts) => DispatchTextToSpeech(tts));
     }
 
-    public async void GenerateSpeech(TextToSpeech tts)
+    private TextToSpeech Generate(string text, byte[] data)
     {
-        TextToSpeechStart?.Invoke(this, new TextToSpeechEventArgs(tts.Text));
-        tts.Speech = await GenerateSpeechAsync(tts.Text);
-        TextToSpeechComplete?.Invoke(this, new TextToSpeechEventArgs(tts.Text, tts.Speech));
+        var samples = new float[data.Length / 4];
+        for (int i = 0; i < samples.Length; i++)
+            samples[i] = (float)(BitConverter.ToInt32(data, i * 4)) / int.MaxValue;
+        var clip = AudioClip.Create("Speech", samples.Length, 1, 12000, false);
+        clip.SetData(samples, 0);
+        return new TextToSpeech(text, clip);
+    }
+
+    private TextToSpeech DispatchTextToSpeech(TextToSpeech tts)
+    {
+        OnGenerated?.Invoke(this, new TextToSpeechEventArgs(tts));
+        return tts;
     }
 }

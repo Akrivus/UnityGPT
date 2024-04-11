@@ -1,22 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 
-[RequireComponent(typeof(ChatAgent))]
+[RequireComponent(typeof(TextToSpeechAgent))]
 public class ChatMemory : MonoBehaviour, IVectorDB
 {
     [SerializeField] List<VectorString> data = new List<VectorString>();
     
-    ChatAgent chat;
+    TextToSpeechAgent chat;
     IText text;
     IEmbedding embedding;
 
     void Awake()
     {
-        chat = GetComponent<ChatAgent>();
+        chat = GetComponent<TextToSpeechAgent>();
         text = chat;
-        embedding = chat.Embeddings;
+        embedding = new TextEmbedder();
     }
 
     public void Add(string content, float[] vector)
@@ -24,17 +23,15 @@ public class ChatMemory : MonoBehaviour, IVectorDB
         data.Add(new VectorString(content, vector));
     }
 
-    public async Task AddAsync(string content)
+    public void Add(string content)
     {
-        Add(content, await embedding.GenerateEmbeddingAsync(content));
+        embedding.FetchEmbeddingFor(content).Then(vector => Add(content, vector));
     }
 
-    public async Task AddAsync()
+    public void Add()
     {
-        var content = await text.GenerateTextAsync("Summarize this " +
-            "conversation, including what you learned and what you " +
-            "would like to learn more about.");
-        await AddAsync(content);
+        text.Ask("Summarize this conversation, including what you learned and what you " +
+            "would like to learn more about.").Then(text => Add(text));
     }
 
     public VectorResult[] Find(float[] vector, int count = 1)

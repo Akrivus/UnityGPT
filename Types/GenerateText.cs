@@ -12,13 +12,15 @@ public class GenerateText
     public string ToolChoice { get; set; } = "auto";
     public bool Stream { get; set; } = false;
 
-    public GenerateText(TextModel model, int maxtokens, float temperature, List<Message> messages, List<Tool> functions = null)
+    public GenerateText(TextModel model, int maxtokens, float temperature, List<Message> messages, List<Tool> functions = null, string toolChoice = "auto", bool stream = false)
     {
         Model = model;
         MaxTokens = maxtokens;
         Temperature = temperature;
         Messages = messages;
         Tools = new List<ToolReference>();
+        ToolChoice = toolChoice;
+        Stream = stream;
 
         if (functions != null)
             foreach (var function in functions)

@@ -32,16 +32,3 @@ public class GenerateTextToSpeech
         Ogg
     }
 }
-
-public class TextToSpeech
-{
-    public string Text { get; set; }
-    public AudioClip Speech { get; set; }
-
-    public bool IsReady => Speech != null;
-
-    public TextToSpeech(string text)
-    {
-        Text = text;
-    }
-}
