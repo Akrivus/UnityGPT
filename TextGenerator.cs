@@ -12,16 +12,8 @@ public class TextGenerator : IText
     public TextModel Model { get; set; } = TextModel.GPT35_Turbo;
     public int MaxTokens { get; set; } = 1024;
     public float Temperature { get; set; } = 0.5F;
-    public string ToolChoice { get; set; } = "auto";
-    public string Prompt
-    {
-        get => prompt;
-        set
-        {
-            prompt = value;
-            AddSystemPrompt();
-        }
-    }
+    public string ToolChoice { get; set; } = null;
+    public string Prompt { get; set; }
 
     public event EventHandler<GeneratedTextReceivedEventArgs<Choice>> OnGeneratedTextReceived;
     public event EventHandler<GeneratedTextReceivedEventArgs<Choice.Chunk>> OnGeneratedTextStreamReceived;
@@ -29,7 +21,6 @@ public class TextGenerator : IText
 
     protected List<Tool> tools = new List<Tool>();
     protected List<Message> messages = new List<Message>();
-    protected string prompt;
     protected string message;
 
     public TextGenerator(TextModel model, int maxTokens = 1024, float temperature = 0.5f)
@@ -37,6 +28,12 @@ public class TextGenerator : IText
         Model = model;
         MaxTokens = maxTokens;
         Temperature = temperature;
+    }
+
+    public TextGenerator(string prompt, TextModel model, int maxTokens = 1024, float temperature = 0.5f) : this(model, maxTokens, temperature)
+    {
+        Prompt = prompt;
+        ResetContext();
     }
 
     public void Tell(string content)
@@ -58,29 +55,30 @@ public class TextGenerator : IText
 
     public IPromise<string> Listen()
     {
-        var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, ToolChoice);
+        var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, false, ToolChoice);
         return RestClientExtensions.Post<GeneratedText<Choice>>(URI, body).Then(text => DispatchGeneratedText(text));
     }
 
     public IPromise<string> Listen(Action<string> tokenCallback)
     {
         var sse = new ServerSentEventHandler<GeneratedText<Choice.Chunk>>();
-        sse.OnServerSentEvent += (e) => tokenCallback(DispatchGeneratedTextChunk(e.Data));
+        sse.OnServerSentEvent += (e) => DispatchGeneratedTextChunk(e.Data).Then(token => tokenCallback(token));
 
         message = string.Empty;
 
-        var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, ToolChoice, true);
+        var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, true, ToolChoice);
         return RestClient.Post(new RequestHelper
         {
             Uri = URI,
             BodyString = RestClientExtensions.Serialize(body),
             DownloadHandler = sse
-        }).Then((helper) => DispatchGeneratedText(message));
+        }).Then(_ => DispatchGeneratedText(message));
     }
 
     public void ResetContext()
     {
-        throw new NotImplementedException();
+        messages.Clear();
+        messages.Add(new Message(Prompt, Roles.System));
     }
 
     public virtual void AddTool(params IToolCall[] toolCalls)
@@ -100,30 +98,29 @@ public class TextGenerator : IText
         messages.Add(new Message(result, Roles.Tool, tool.Function.Name, tool.Id));
     }
 
-    public void AddSystemPrompt()
-    {
-        if (!string.IsNullOrEmpty(prompt) && messages.Count == 0)
-            messages.Add(new Message(prompt, Roles.System));
-    }
-
-    private string DispatchGeneratedText(GeneratedText<Choice> text)
+    private IPromise<string> DispatchGeneratedText(GeneratedText<Choice> text)
     {
         messages.Add(text.Choice.Message);
         OnGeneratedTextReceived?.Invoke(this, new GeneratedTextReceivedEventArgs<Choice>(text));
-        return text.Content;
+        return DispatchForToolCalls(text).Then(result => result);
     }
 
-    private string DispatchGeneratedTextChunk(GeneratedText<Choice.Chunk> text)
+    private IPromise<string> DispatchGeneratedTextChunk(GeneratedText<Choice.Chunk> text)
     {
-        message += text.Content;
+        if (text.Content != null) message += text.Content;
         OnGeneratedTextStreamReceived?.Invoke(this, new GeneratedTextReceivedEventArgs<Choice.Chunk>(text));
-        return text.Content;
+        return DispatchForToolCalls(text).Then(result => result);
     }
 
     private string DispatchGeneratedText(string message)
     {
         OnGeneratedTextStreamEnded?.Invoke(this, new GeneratedTextStreamEndedEventArgs(message));
         return message;
+    }
+
+    protected virtual IPromise<string> DispatchForToolCalls<T>(GeneratedText<T> text) where T : Choice
+    {
+        return Promise<string>.Resolved(text.Content);
     }
 }
 

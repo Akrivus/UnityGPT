@@ -1,4 +1,5 @@
 ﻿using RSG;
+using System.Collections.Generic;
 using System.Diagnostics;
 using uMicrophoneWebGL;
 using UnityEngine;
@@ -6,8 +7,10 @@ using UnityEngine;
 public class VoiceRecorder : MonoBehaviour
 {
     public delegate void AudioClipHandler(AudioClip clip);
+    public delegate void ReadyHandler(VoiceRecorder recorder);
 
     public event AudioClipHandler OnRecordStop;
+    public event ReadyHandler OnReady;
 
     [SerializeField] MicrophoneWebGL microphone;
 
@@ -17,37 +20,74 @@ public class VoiceRecorder : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField] float noiseLevel;
-    [SerializeField] float _secondsOfSilence;
-    [SerializeField] bool _isRecording;
-    [SerializeField] bool _isVoiceDetected;
+    [SerializeField] float secondsOfSilence;
+    [SerializeField, Range(1f, 3f)] float sensitivity = 2f;
+    bool hasVoiceBeenDetected;
 
     float[] _data;
     int _position;
     AudioClip _clip;
     Stopwatch _stopwatch;
+    Device _device;
 
-    public Promise<AudioClip> Recording { get; set; }
+    public Promise<AudioClip> Recording { get; private set; }
+    public Promise<float> Calibrating { get; private set; }
 
-    public bool IsRecording => _isRecording;
-    public bool IsVoiceDetected => _isVoiceDetected;
+    public VoiceRecorderUI UI { get; private set; }
+    public bool IsPaused { get; set; }
+
     public float NoiseFloor => noiseFloor;
+    public float NoiseLevel => noiseLevel;
+    public float SecondsOfSilence => secondsOfSilence;
+    public float MaxPauseLength => maxPauseLength;
 
-    public void Record(Promise<AudioClip> recording)
+    public bool IsCalibrating { get; private set; }
+    public bool IsRecording { get; private set; }
+    public bool IsVoiceDetected { get; private set; }
+
+    public IPromise<AudioClip> Record()
     {
-        if (IsRecording) return;
-        _isRecording = true;
-        _stopwatch.Restart();
-        Recording = recording;
-        AllocateClip();
-        microphone.Begin();
+        if (IsRecording) return null;
+        Recording = new Promise<AudioClip>();
+        IsRecording = true;
+
+        PrepareMicrophone();
+
+        return Recording;
     }
 
     public void StopRecord()
     {
         if (!IsRecording) return;
-        _isRecording = false;
+        IsRecording = false;
         microphone.End();
         SendDataToEvents();
+    }
+
+    public IPromise<float> Calibrate()
+    {
+        if (IsRecording) return null;
+        IsCalibrating = true;
+        Calibrating = new Promise<float>();
+        noiseFloor = 0f;
+
+        PrepareMicrophone();
+
+        return Calibrating.Then(noise => {
+            IsCalibrating = false;
+            noiseFloor = noise * sensitivity;
+            UnityEngine.Debug.Log(noiseFloor);
+            return noiseFloor;
+        });
+    }
+
+    public void PrepareMicrophone()
+    {
+        _stopwatch.Restart();
+        AllocateClip();
+        microphone.Begin();
+        hasVoiceBeenDetected = false;
+        IsRecording = true;
     }
 
     public void OnDataReceived(float[] data)
@@ -55,44 +95,74 @@ public class VoiceRecorder : MonoBehaviour
         if (!IsRecording) return;
         data.CopyTo(_data, _position);
         _position += data.Length;
-        _isVoiceDetected = DetectVoice(data);
+        IsVoiceDetected = DetectVoice(data);
         if (IsVoiceDetected)
             _stopwatch.Restart();
+        hasVoiceBeenDetected |= IsVoiceDetected;
+    }
+
+    public void OnMicrophoneReady()
+    {
+        Calibrate().Then((noiseFloor) => OnReady?.Invoke(this));
+    }
+
+    public void SetDeviceList(List<Device> devices)
+    {
+        _device = devices[0];
     }
 
     void Awake()
     {
-        microphone.dataEvent.AddListener(OnDataReceived);
         _stopwatch = new Stopwatch();
+        UI = GetComponent<VoiceRecorderUI>();
     }
 
     void Start()
     {
+        microphone.readyEvent.AddListener(OnMicrophoneReady);
+        microphone.deviceListEvent.AddListener(SetDeviceList);
+        microphone.dataEvent.AddListener(OnDataReceived);
         _stopwatch.Start();
+        if (microphone.devices?.Count > 0)
+            _device = microphone.devices[0];
     }
 
     void FixedUpdate()
     {
         if (!IsRecording) return;
-        _secondsOfSilence = (float)_stopwatch.Elapsed.TotalSeconds;
-        if (_secondsOfSilence > maxPauseLength)
+        secondsOfSilence = (float)_stopwatch.Elapsed.TotalSeconds;
+        if (secondsOfSilence > maxPauseLength &&
+           (IsCalibrating || hasVoiceBeenDetected))
             StopRecord();
     }
 
     void SendDataToEvents()
     {
-        CreateClip();
-        Recording.Resolve(_clip);
-        OnRecordStop?.Invoke(_clip);
+        if (IsCalibrating)
+        {
+            IsCalibrating = false;
+            Calibrating.Resolve(noiseLevel);
+        }
+        else
+        {
+            CreateClip();
+            Recording.Resolve(_clip);
+            OnRecordStop?.Invoke(_clip);
+        }
     }
 
     bool DetectVoice(float[] data)
     {
-        noiseLevel = 0;
         for (var i = 0; i < data.Length; i++)
             noiseLevel += Mathf.Abs(data[i]);
         noiseLevel /= data.Length;
-        return noiseFloor <= noiseLevel;
+        noiseLevel /= sensitivity;
+
+        if (IsCalibrating && noiseLevel > noiseFloor)
+            noiseFloor = noiseLevel;
+        else if (IsRecording)
+            return noiseLevel > noiseFloor;
+        return false;
     }
 
     void AllocateClip()
@@ -102,8 +172,8 @@ public class VoiceRecorder : MonoBehaviour
 
     void CreateClip()
     {
-        var length = (int)(_data.Length * 48000f / 44100f);
-        _clip = AudioClip.Create("Voice", length, 1, 48000, false);
+        var length = (int)(_data.Length * (_device.sampleRate / 44100f));
+        _clip = AudioClip.Create("Voice", length, 1, _device.sampleRate, false);
         _clip.SetData(_data, _position = 0);
     }
 }

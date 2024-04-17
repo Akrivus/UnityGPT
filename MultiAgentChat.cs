@@ -14,7 +14,7 @@ public class MultiAgentChat : MonoBehaviour
 
     private IPromise<string> PlayChatTurn(string message, int index)
     {
-        return agents[index].Ask(message).Then((text) => PlayChatTurn(text, (index + 1) % agents.Length));
+        return agents[index].Ask(message).Then(text => PlayChatTurn(text, (index + 1) % agents.Length));
     }
 
     private IEnumerator StartChat()

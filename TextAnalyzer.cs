@@ -4,19 +4,21 @@ using System.Reflection;
 
 public class TextAnalyzer
 {
+    static readonly string Prompt = "Report the sentiment of the following text.\nText:";
+
     Sentiment sentiment = new Sentiment();
-    TextAgent agent;
+    ToolCallingAgent agent;
 
     public TextAnalyzer()
     {
-        agent = new TextAgent(TextModel.GPT35_Turbo, 256, 0, sentiment);
-        agent.Prompt = "Report the sentiment of the following text.\nText:";
+        agent = new ToolCallingAgent(Prompt,
+            TextModel.GPT35_Turbo, 256, 0.1f, sentiment);
     }
 
     public IPromise<float> Analyze(string text)
     {
         sentiment.Reset();
-        agent.Execute("Sentiment", text);
+        agent.Execute("Sentiment", text).Then(_ => agent.ResetContext());
         return sentiment.Run;
     }
 

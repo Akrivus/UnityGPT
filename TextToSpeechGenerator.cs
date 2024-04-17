@@ -26,8 +26,8 @@ public class TextToSpeechGenerator : ITextToSpeech
     {
         var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, voice, model));
         return RestClient.Post(URI, body)
-            .Then((helper) => Generate(text, helper.Data))
-            .Then((tts) => DispatchTextToSpeech(tts));
+            .Then(helper => Generate(text, helper.Data))
+            .Then(tts => DispatchTextToSpeech(tts));
     }
 
     private TextToSpeech Generate(string text, byte[] data)

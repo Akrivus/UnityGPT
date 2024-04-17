@@ -34,9 +34,7 @@ public class WhisperTextGenerator : IText
 
     public IPromise<string> Listen()
     {
-        var clip = new Promise<AudioClip>();
-        recorder.Record(clip);
-        return clip.Then(clip => UploadAudioAndGenerateText(clip));
+        return recorder.Record().Then(clip => UploadAudioAndGenerateText(clip));
     }
 
     public void Tell(string context)

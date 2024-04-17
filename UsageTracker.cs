@@ -9,11 +9,11 @@ public class UsageTracker : MonoBehaviour
 {
     public static UsageTracker Instance { get; private set; }
 
+    [SerializeField] string OPENAI_API_KEY;
     [SerializeField] UsageCategory promptTokens;
     [SerializeField] UsageCategory completionTokens;
     [SerializeField] UsageCategory textToSpeech;
     [SerializeField] UsageCategory speechToText;
-    [SerializeField] string OPENAI_API_KEY;
 
     private void OnEnable()
     {

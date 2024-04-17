@@ -20,15 +20,15 @@ public static class RestClientExtensions
     public static IPromise<T> Post<T>(string uri, object @object)
     {
         return RestClient.Post(uri, Serialize(@object))
-            .Then((response) => response.Text)
-            .Then((text) => Deserialize<T>(text));
+            .Then(response => response.Text)
+            .Then(text => Deserialize<T>(text));
     }
 
     public static IPromise<T> Get<T>(string uri)
     {
         return RestClient.Get(uri)
-            .Then((response) => response.Text)
-            .Then((text) => Deserialize<T>(text));
+            .Then(response => response.Text)
+            .Then(text => Deserialize<T>(text));
     }
 
     public static T Deserialize<T>(string text)

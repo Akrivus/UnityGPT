@@ -9,36 +9,31 @@ public class GenerateText
     public float Temperature { get; set; }
     public List<Message> Messages { get; set; }
     public List<ToolReference> Tools { get; set; }
-    public string ToolChoice { get; set; } = "auto";
+    public ToolCallReference ToolChoice { get; set; }
     public bool Stream { get; set; } = false;
 
-    public GenerateText(TextModel model, int maxtokens, float temperature, List<Message> messages, List<Tool> functions = null, string toolChoice = "auto", bool stream = false)
+    public GenerateText(TextModel model, int maxtokens, float temperature, List<Message> messages, List<Tool> tools = null, bool stream = false, string toolChoice = null)
     {
         Model = model;
         MaxTokens = maxtokens;
         Temperature = temperature;
         Messages = messages;
         Tools = new List<ToolReference>();
-        ToolChoice = toolChoice;
         Stream = stream;
 
-        if (functions != null)
-            foreach (var function in functions)
+        if (toolChoice != null)
+            ToolChoice = new ToolCallReference(toolChoice);
+        if (tools != null)
+            foreach (var tool in tools)
                 Tools.Add(new ToolReference
                 {
-                    Function = function
+                    Function = tool
                 });
     }
 
-    public bool ShouldSerializeTools()
-    {
-        return Tools.Count > 0;
-    }
+    public bool ShouldSerializeTools() => Tools.Count > 0;
 
-    public bool ShouldSerializeToolChoice()
-    {
-        return Tools.Count > 0 && ToolChoice != "auto";
-    }
+    public bool ShouldSerializeToolChoice() => ToolChoice != null;
 }
 
 public class Message
@@ -91,6 +86,18 @@ public class ToolCallReference
     public string Type { get; set; } = "function";
     public string Id { get; set; }
     public FunctionCall Function { get; set; }
+
+    public ToolCallReference() { }
+
+    public ToolCallReference(string name)
+    {
+        Function = new FunctionCall
+        {
+            Name = name
+        };
+    }
+
+    public bool ShouldSerializeId() => Id != null;
 }
 
 public class FunctionCall
@@ -126,8 +133,9 @@ public class Choice
 
     public class Chunk : Choice
     {
-        public bool ShouldSerializeMessage() => false;
         public Message Delta { get; set; }
         public override Message Message => Delta;
+
+        public bool ShouldSerializeMessage() => false;
     }
 }

@@ -33,7 +33,7 @@ public class TextToSpeechAgent : MonoBehaviour, IText, ITextToSpeech, IToolCalle
     [SerializeField] AudioSource source;
     [SerializeField, Range(0.8f, 1.2f)] float pitch = 1.0f;
 
-    TextAgent text;
+    ToolCallingAgent text;
     TextToSpeechGenerator textToSpeech;
 
     Queue<TextToSpeech> lines = new Queue<TextToSpeech>();
@@ -71,16 +71,17 @@ public class TextToSpeechAgent : MonoBehaviour, IText, ITextToSpeech, IToolCalle
     public IPromise<string> Listen()
     {
         if (IsGeneratingText) return TextAgentBusy;
-        return Listen((token) => DispatchMessageTextToken(token));
+        return Listen(token => DispatchMessageTextToken(token));
     }
 
     public IPromise<string> Listen(Action<string> tokenCallback)
     {
         if (IsGeneratingText) return TextAgentBusy;
+        IsGeneratingText = true;
         TextToSpeechComplete = new Promise<bool>();
         return text.Listen(tokenCallback)
-            .Then((text) => TextToSpeechComplete
-            .Then((complete) => DispatchMessageText(text)));
+            .Then(text => TextToSpeechComplete
+            .Then(_ => DispatchMessageText(text)));
     }
 
     public void ResetContext()
@@ -107,7 +108,7 @@ public class TextToSpeechAgent : MonoBehaviour, IText, ITextToSpeech, IToolCalle
     {
         textToSpeech = new TextToSpeechGenerator(TextToSpeechModel.TTS_1, voice);
         textToSpeech.OnGenerated += OnGeneratedSpeechReceived;
-        text = new TextAgent(model, maxTokens, temperature, GetComponents<IToolCall>());
+        text = new ToolCallingAgent(model, maxTokens, temperature, GetComponents<IToolCall>());
         text.OnGeneratedTextReceived += OnGeneratedTextReceived;
         text.OnGeneratedTextStreamReceived += OnGeneratedTextStreamReceived;
         text.OnGeneratedTextStreamEnded += OnGeneratedTextStreamEnded;
