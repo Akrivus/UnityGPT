@@ -9,18 +9,28 @@ public class VoiceRecorderUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI chatLog;
     [SerializeField] ScrollRect chatScroll;
     [SerializeField] Button toggle;
-    [SerializeField] Button resetButton;
-    [SerializeField] Button calibrate;
 
     [SerializeField] Color color;
     [SerializeField] float speed = 1;
-    [SerializeField] WhisperChat chat;
+    [SerializeField] WhisperChat whisper;
 
     VoiceRecorder recorder;
+
+    TextMeshProUGUI toggleLabel;
+
+    float maxNoiseLevel;
 
     void Awake()
     {
         recorder = GetComponent<VoiceRecorder>();
+    }
+
+    void Start()
+    {
+        toggleLabel = toggle.GetComponentInChildren<TextMeshProUGUI>();
+        toggle.onClick.AddListener(() => ToggleChatWindow());
+
+        SetGraph(0);
     }
 
     void Update()
@@ -29,12 +39,15 @@ public class VoiceRecorderUI : MonoBehaviour
         var silence = Mathf.Sin(Mathf.Pow(Time.realtimeSinceStartup * speed, 1f + Mathf.Clamp01(recorder.SecondsOfSilence / recorder.MaxPauseLength)));
         var a = Mathf.Clamp01(Mathf.Clamp01(noise + silence) + 0.2f);
         color = new Color(color.r, color.g, color.b, a);
+
         label.color = color;
         label.enabled = recorder.IsRecording && !recorder.IsCalibrating;
-        calibrate.onClick.AddListener(() => recorder.Calibrate());
-        calibrate.gameObject.SetActive(!recorder.IsCalibrating);
-        toggle.onClick.AddListener(() => chatScroll.gameObject.SetActive(!chatScroll.gameObject.activeSelf));
-        resetButton.onClick.AddListener(() => chat.ResetChat());
+
+        if (recorder.NoiseLevel > maxNoiseLevel)
+            SetGraph(recorder.NoiseLevel);
+
+        DebugGUI.Graph("NoiseLevel", recorder.NoiseLevel);
+        DebugGUI.Graph("NoiseFloor", recorder.NoiseFloor);
     }
 
     public void AddNewMessage(string name)
@@ -45,5 +58,19 @@ public class VoiceRecorderUI : MonoBehaviour
     public void AddText(string text)
     {
         chatLog.text += text;
+    }
+
+    void ToggleChatWindow()
+    {
+        var chatActive = chatScroll.gameObject.activeSelf;
+        chatScroll.gameObject.SetActive(!chatActive);
+        toggleLabel.text = chatActive ? "Show Chat" : "Hide Chat";
+    }
+
+    void SetGraph(float max)
+    {
+        DebugGUI.SetGraphProperties("NoiseLevel", "Noise Level", 0, max, 0, Color.green, false);
+        DebugGUI.SetGraphProperties("NoiseFloor", "Noise Floor", 0, max, 0, Color.red, false);
+        maxNoiseLevel = max;
     }
 }

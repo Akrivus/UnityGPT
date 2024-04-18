@@ -17,11 +17,11 @@ public class VoiceRecorder : MonoBehaviour
     [Header("Voice Detection")]
     [SerializeField] float noiseFloor = 0.02f;
     [SerializeField] float maxPauseLength = 2f;
+    [SerializeField] float sensitivity = 1.2f;
 
     [Header("Debug")]
     [SerializeField] float noiseLevel;
     [SerializeField] float secondsOfSilence;
-    [SerializeField, Range(1f, 3f)] float sensitivity = 2f;
     bool hasVoiceBeenDetected;
 
     float[] _data;
@@ -75,8 +75,7 @@ public class VoiceRecorder : MonoBehaviour
 
         return Calibrating.Then(noise => {
             IsCalibrating = false;
-            noiseFloor = noise * sensitivity;
-            UnityEngine.Debug.Log(noiseFloor);
+            noiseFloor = noise;
             return noiseFloor;
         });
     }
@@ -95,9 +94,10 @@ public class VoiceRecorder : MonoBehaviour
         if (!IsRecording) return;
         data.CopyTo(_data, _position);
         _position += data.Length;
-        IsVoiceDetected = DetectVoice(data);
-        if (IsVoiceDetected)
+        var detected = DetectVoice(data);
+        if (IsVoiceDetected && detected)
             _stopwatch.Restart();
+        IsVoiceDetected = detected;
         hasVoiceBeenDetected |= IsVoiceDetected;
     }
 
@@ -156,10 +156,9 @@ public class VoiceRecorder : MonoBehaviour
         for (var i = 0; i < data.Length; i++)
             noiseLevel += Mathf.Abs(data[i]);
         noiseLevel /= data.Length;
-        noiseLevel /= sensitivity;
 
         if (IsCalibrating && noiseLevel > noiseFloor)
-            noiseFloor = noiseLevel;
+            noiseFloor = noiseLevel * sensitivity;
         else if (IsRecording)
             return noiseLevel > noiseFloor;
         return false;
