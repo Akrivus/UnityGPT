@@ -12,23 +12,26 @@ public class VoiceRecorder : MonoBehaviour
     public event AudioClipHandler OnRecordStop;
     public event ReadyHandler OnReady;
 
-    [SerializeField] MicrophoneWebGL microphone;
+    [SerializeField]
+    private MicrophoneWebGL microphone;
 
     [Header("Voice Detection")]
-    [SerializeField] float noiseFloor = 0.02f;
-    [SerializeField] float maxPauseLength = 2f;
-    [SerializeField] float sensitivity = 1.2f;
+    [SerializeField]
+    private float noiseFloor = 0.02f;
+    [SerializeField]
+    private float maxPauseLength = 2f;
+    [SerializeField]
+    private float sensitivity = 1.2f;
 
-    [Header("Debug")]
-    [SerializeField] float noiseLevel;
-    [SerializeField] float secondsOfSilence;
-    bool hasVoiceBeenDetected;
+    private float noiseLevel;
+    private float secondsOfSilence;
+    private bool hasVoiceBeenDetected;
 
-    float[] _data;
-    int _position;
-    AudioClip _clip;
-    Stopwatch _stopwatch;
-    Device _device;
+    private float[] _data;
+    private int _position;
+    private AudioClip _clip;
+    private Stopwatch _stopwatch;
+    private Device _device;
 
     public Promise<AudioClip> Recording { get; private set; }
     public Promise<float> Calibrating { get; private set; }
@@ -141,7 +144,7 @@ public class VoiceRecorder : MonoBehaviour
         if (IsCalibrating)
         {
             IsCalibrating = false;
-            Calibrating.Resolve(noiseLevel);
+            Calibrating.Resolve(noiseFloor);
         }
         else
         {

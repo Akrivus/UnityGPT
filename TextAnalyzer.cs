@@ -7,24 +7,21 @@ public class TextAnalyzer
     static readonly string Prompt = "Report the sentiment of the following text.\nText:";
 
     Sentiment sentiment = new Sentiment();
-    ToolCallingAgent agent;
+    ToolCaller agent;
 
     public TextAnalyzer()
     {
-        agent = new ToolCallingAgent(Prompt,
-            TextModel.GPT35_Turbo, 256, 0.1f, sentiment);
+        agent = new ToolCaller(Prompt,
+            TextModel.GPT_3p5_Turbo, 256, 0.1f, sentiment);
     }
 
     public IPromise<float> Analyze(string text)
     {
-        sentiment.Reset();
-        agent.Execute("Sentiment", text).Then(_ => agent.ResetContext());
-        return sentiment.Run;
+        return agent.Execute("Sentiment", text).Then(_ => agent.ResetContext()).Then(() => Promise<float>.Resolved(Sentiment.Score));
     }
 
     class Sentiment : IToolCall
     {
-
         [Tool("Sentiment", "Reports sentiment score.")]
         public class Args
         {
@@ -36,22 +33,12 @@ public class TextAnalyzer
         public Tool Tool => new Tool(ArgType);
         public MethodInfo EntryPoint => typeof(Sentiment).GetMethod("Predict");
 
-        public Promise<float> Run;
-
-        public Sentiment()
-        {
-            Reset();
-        }
+        public static float Score { get; private set; }
 
         public string Predict(Args args)
         {
-            Run.Resolve(args.Score);
+            Score = args.Score;
             return "{\"success\": \"true\"}";
-        }
-
-        public void Reset()
-        {
-            Run = new Promise<float>();
         }
     }
 }

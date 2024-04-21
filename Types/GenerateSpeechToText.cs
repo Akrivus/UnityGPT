@@ -1,9 +1,5 @@
 ﻿using Newtonsoft.Json;
-using System.IO;
-using System.Net.Http;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 public class GenerateSpeechToText
 {
@@ -22,7 +18,7 @@ public class GenerateSpeechToText
 
     public WWWForm FormData => GenerateFormData(new WWWForm());
 
-    WWWForm GenerateFormData(WWWForm form)
+    private WWWForm GenerateFormData(WWWForm form)
     {
         form.AddField("model", "whisper-1");
         form.AddField("prompt", Prompt);

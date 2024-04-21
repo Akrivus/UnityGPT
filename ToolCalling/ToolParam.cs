@@ -71,7 +71,7 @@ public class ToolParam
         Properties = attr.Properties;
     }
 
-    Dictionary<string, ToolParam> GenerateProperties()
+    private Dictionary<string, ToolParam> GenerateProperties()
     {
         var properties = new Dictionary<string, ToolParam>();
         foreach (var definition in Definitions)
@@ -79,7 +79,7 @@ public class ToolParam
         return properties;
     }
 
-    string[] GenerateRequiredFields()
+    private string[] GenerateRequiredFields()
     {
         var required = new List<string>();
         foreach (var definition in Definitions)
@@ -113,7 +113,7 @@ public class Params
         Required = GenerateRequiredFields();
     }
 
-    ToolParam[] GenerateDefinitions(Type type)
+    private ToolParam[] GenerateDefinitions(Type type)
     {
         var definitions = new List<ToolParam>();
         var fields = type.GetFields();
@@ -126,7 +126,7 @@ public class Params
         return definitions.ToArray();
     }
 
-    Dictionary<string, ToolParam> GenerateProperties()
+    private Dictionary<string, ToolParam> GenerateProperties()
     {
         var properties = new Dictionary<string, ToolParam>();
         foreach (var definition in Definitions)
@@ -134,7 +134,7 @@ public class Params
         return properties;
     }
 
-    string[] GenerateRequiredFields()
+    private string[] GenerateRequiredFields()
     {
         var required = new List<string>();
         foreach (var definition in Definitions)

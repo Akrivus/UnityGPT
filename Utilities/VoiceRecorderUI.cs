@@ -5,20 +5,27 @@ using UnityEngine.UI;
 [RequireComponent(typeof(VoiceRecorder))]
 public class VoiceRecorderUI : MonoBehaviour
 {
-    [SerializeField] TextMeshProUGUI label;
-    [SerializeField] TextMeshProUGUI chatLog;
-    [SerializeField] ScrollRect chatScroll;
-    [SerializeField] Button toggle;
+    [SerializeField]
+    private TextMeshProUGUI label;
+    [SerializeField]
+    private TextMeshProUGUI chatLog;
+    [SerializeField]
+    private ScrollRect chatScroll;
+    [SerializeField]
+    private Button toggle;
 
-    [SerializeField] Color color;
-    [SerializeField] float speed = 1;
-    [SerializeField] WhisperChat whisper;
+    private TextMeshProUGUI toggleLabel;
 
-    VoiceRecorder recorder;
+    [SerializeField]
+    private Color color;
+    [SerializeField]
+    private float speed = 1;
+    [SerializeField]
+    private WhisperAgent whisper;
 
-    TextMeshProUGUI toggleLabel;
+    private VoiceRecorder recorder;
 
-    float maxNoiseLevel;
+    private float maxNoiseLevel;
 
     void Awake()
     {

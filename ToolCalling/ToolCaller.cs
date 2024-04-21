@@ -1,16 +1,11 @@
 ﻿using RSG;
 using System.Collections.Generic;
 
-public class ToolCallingAgent : TextGenerator, IToolCaller
+public class ToolCaller : TextGenerator, IToolCaller
 {
     public Dictionary<string, IToolCall> Tools = new Dictionary<string, IToolCall>();
 
-    public ToolCallingAgent(TextModel model, int maxTokens = 1024, float temperature = 0.5f, params IToolCall[] tools) : base(model, maxTokens, temperature)
-    {
-        AddTool(tools);
-    }
-
-    public ToolCallingAgent(string prompt, TextModel model, int maxTokens = 1024, float temperature = 0.5f, params IToolCall[] tools) : base(prompt, model, maxTokens, temperature)
+    public ToolCaller(string prompt, TextModel model, int maxTokens = 1024, float temperature = 0.5f, params IToolCall[] tools) : base(prompt, model, maxTokens, temperature)
     {
         AddTool(tools);
     }
@@ -32,7 +27,7 @@ public class ToolCallingAgent : TextGenerator, IToolCaller
     public IPromise<string> Execute(string toolChoice, string input = "")
     {
         ToolChoice = toolChoice;
-        return Ask(input);
+        return RespondTo(input);
     }
 
     private IPromise<string> ExecuteToolCalls(List<ToolCallReference> tools)
@@ -40,7 +35,7 @@ public class ToolCallingAgent : TextGenerator, IToolCaller
         if (tools == null) return null;
         foreach (var tool in tools)
             ExecuteToolCall(tool, Tools[tool.Function.Name]);
-        return Listen();
+        return SendContext();
     }
 
     private void ExecuteToolCall(ToolCallReference tool, IToolCall toolCall)

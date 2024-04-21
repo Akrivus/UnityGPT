@@ -1,24 +1,36 @@
-﻿using RSG;
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class MultiAgentChat : MonoBehaviour
 {
-    [SerializeField] TextToSpeechAgent[] agents;
     [SerializeField] string message;
 
-    void Start()
+    private IChatAgent[] agents;
+    private int i = 0;
+
+    public bool IsExited { get; private set; }
+
+    private void Awake()
     {
-        StartCoroutine(StartChat());
+        agents = GetComponentsInChildren<IChatAgent>();
     }
 
-    private IPromise<string> PlayChatTurn(string message, int index)
+    private void Start()
     {
-        return agents[index].Ask(message).Then(text => PlayChatTurn(text, (index + 1) % agents.Length));
+        StartCoroutine(Chat());
     }
 
-    private IEnumerator StartChat()
+    private IEnumerator Chat()
     {
-        yield return PlayChatTurn(message, 0);
+        yield return new WaitUntil(() => agents[i].IsReady);
+        yield return agents[i].RespondTo(message, ThenSetMessage);
+        i = (i + 1) % agents.Length;
+        if (!IsExited)
+            yield return Chat();
+    }
+
+    private void ThenSetMessage(string response)
+    {
+        message = response;
     }
 }

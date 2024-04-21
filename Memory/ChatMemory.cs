@@ -2,19 +2,16 @@
 using System.Linq;
 using UnityEngine;
 
-[RequireComponent(typeof(TextToSpeechAgent))]
+[RequireComponent(typeof(SpeechAgent))]
 public class ChatMemory : MonoBehaviour, IVectorDB
 {
     [SerializeField] List<VectorString> data = new List<VectorString>();
     
-    TextToSpeechAgent chat;
-    IText text;
+    ITextGenerator text;
     IEmbedding embedding;
 
     void Awake()
     {
-        chat = GetComponent<TextToSpeechAgent>();
-        text = chat;
         embedding = new TextEmbedder();
     }
 
@@ -30,7 +27,7 @@ public class ChatMemory : MonoBehaviour, IVectorDB
 
     public void Add()
     {
-        text.Ask("Summarize this conversation, including what you learned and what you " +
+        text.RespondTo("Summarize this conversation, including what you learned and what you " +
             "would like to learn more about.").Then(text => Add(text));
     }
 

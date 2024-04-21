@@ -15,11 +15,9 @@ public enum EmbeddingModel
 public enum TextModel
 {
     [EnumMember(Value = "gpt-3.5-turbo")]
-    GPT35_Turbo,
-    [EnumMember(Value = "gpt-4")]
-    GPT4,
+    GPT_3p5_Turbo,
     [EnumMember(Value = "gpt-4-turbo")]
-    GPT4_Turbo
+    GPT_4_Turbo
 }
 
 [JsonConverter(typeof(StringEnumConverter))]

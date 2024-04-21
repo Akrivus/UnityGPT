@@ -3,53 +3,53 @@ using RSG;
 using System;
 using UnityEngine;
 
-public class WhisperTextGenerator : IText
+public class WhisperTextGenerator : ITextGenerator
 {
     const string URI = "https://api.openai.com/v1/audio/transcriptions";
 
-    public event EventHandler<TextEventArgs> OnGenerated;
+    public event Action<string> OnTextTranscription;
 
-    VoiceRecorder recorder;
-    string prompt = "";
-    float temperature = 0.5F;
+    private VoiceRecorder recorder;
+    private string context = "";
+    private float temperature = 0.5F;
 
-    public string Prompt
+    public string Context
     {
-        get => prompt;
-        set => prompt = value;
+        get => context;
+        set => context = value;
     }
 
-    public WhisperTextGenerator(VoiceRecorder recorder, string prompt, float temperature)
+    public WhisperTextGenerator(VoiceRecorder recorder, string context, float temperature)
     {
         this.recorder = recorder;
-        this.prompt = prompt;
+        this.context = context;
         this.temperature = temperature;
     }
 
-    public IPromise<string> Ask(string context)
+    public IPromise<string> RespondTo(string context)
     {
-        Tell(context);
-        return Listen();
+        AddContext(context);
+        return SendContext();
     }
 
-    public IPromise<string> Listen()
+    public IPromise<string> SendContext()
     {
         return recorder.Record().Then(clip => UploadAudioAndGenerateText(clip));
     }
 
-    public void Tell(string context)
-    {
-        prompt = context;
-    }
-
     public void ResetContext()
     {
-        prompt = string.Empty;
+        context = string.Empty;
+    }
+
+    public void AddContext(string message)
+    {
+        this.context += message;
     }
 
     private IPromise<string> UploadAudioAndGenerateText(AudioClip clip)
     {
-        var body = new GenerateSpeechToText(prompt, temperature,
+        var body = new GenerateSpeechToText(context, temperature,
             clip.ToByteArray(recorder.NoiseFloor));
         return RestClient.Post(new RequestHelper()
         {
@@ -62,7 +62,7 @@ public class WhisperTextGenerator : IText
 
     private string DispatchTranscription(string text)
     {
-        OnGenerated?.Invoke(this, new TextEventArgs(text));
+        OnTextTranscription?.Invoke(text);
         return text;
     }
 }

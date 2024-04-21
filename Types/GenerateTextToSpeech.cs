@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using UnityEngine;
-
+﻿
 public class GenerateTextToSpeech
 {
     public TextToSpeechModel Model { get; set; }

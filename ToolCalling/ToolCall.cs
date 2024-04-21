@@ -12,7 +12,7 @@ public abstract class ToolCall<T> : MonoBehaviour, IToolCall
     public bool Pending => !_complete;
     public bool Complete => _complete;
 
-    bool _complete = true;
+    private bool _complete = true;
 
     public abstract string OnCall(IToolCaller caller, T args);
 
@@ -28,7 +28,7 @@ public abstract class ToolCall<T> : MonoBehaviour, IToolCall
         StartCoroutine(StartCallCoroutine(coroutine));
     }
 
-    IEnumerator StartCallCoroutine(IEnumerator coroutine)
+    private IEnumerator StartCallCoroutine(IEnumerator coroutine)
     {
         yield return coroutine;
         _complete = true;
