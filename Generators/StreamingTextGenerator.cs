@@ -1,7 +1,6 @@
 ﻿using Proyecto26;
 using RSG;
 using System;
-
 using static Message;
 
 public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
@@ -22,7 +21,8 @@ public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
     public IPromise<string> SendMessages(Action<string> tokenCallback)
     {
         var sse = new ServerSentEventHandler<GeneratedText<Choice.Chunk>>();
-        sse.OnServerSentEvent += (e) => DispatchGeneratedTextChunk(e.Data).Then(token => tokenCallback(token));
+        sse.OnServerSentEvent += (e) => DispatchGeneratedTextChunk(e.Data)
+            .Then(token => tokenCallback(token));
 
         stream = string.Empty;
 

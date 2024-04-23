@@ -13,7 +13,7 @@ public class TextAnalyzer
     public TextAnalyzer()
     {
         generator = new TextGenerator(Prompt,
-            TextModel.GPT_3p5_Turbo, 256, 0.1f);
+            TextModel.GPT_3_Turbo, 256, 0.1f);
         generator.AddTool(sentiment);
     }
 

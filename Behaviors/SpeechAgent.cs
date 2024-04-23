@@ -3,14 +3,14 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class SpeechAgent : MonoBehaviour, IChatBehavior
+public class SpeechAgent : AbstractAgent
 {
     public event Action<string> OnSpeechPlaying;
     public event Action OnSpeechComplete;
 
     public event Func<string, IPromise<string>> OnTextGenerated;
 
-    public bool IsReady => speaker.IsReady;
+    public override bool IsReady => speaker.IsReady;
 
     public string Prompt
     {
@@ -22,7 +22,7 @@ public class SpeechAgent : MonoBehaviour, IChatBehavior
     [SerializeField, TextArea(3, 10)]
     private string prompt = "You are a helpful assistant inside of a Unity scene.";
     [SerializeField]
-    private TextModel model = TextModel.GPT_3p5_Turbo;
+    private TextModel model = TextModel.GPT_3_Turbo;
     [SerializeField]
     private int maxTokens = 4096;
     [SerializeField, Range(0.1f, 1.0f)]
@@ -38,21 +38,20 @@ public class SpeechAgent : MonoBehaviour, IChatBehavior
     [SerializeField]
     private AudioSource source;
 
-    private StreamingTextGenerator textGenerator;
+    private IStreamingTextGenerator textGenerator;
     private SpeechGenerator speaker;
 
     private void Awake()
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         textGenerator = new StreamingTextGenerator(prompt, model, maxTokens, temperature);
-        speaker = new SpeechGenerator(textGenerator, wordMapping, TextToSpeechModel.TTS_1,
-            voice, pitch);
+        speaker = new SpeechGenerator(textGenerator, wordMapping, TextToSpeechModel.TTS_1, voice, pitch);
         speaker.OnTextGenerated += OnTextGenerated;
         speaker.OnSpeechPlaying += OnSpeechPlaying;
         speaker.OnSpeechComplete += OnSpeechComplete;
     }
 
-    public IEnumerator RespondTo(string content, Action<string> callback)
+    public override IEnumerator RespondTo(string content, Action<string> callback)
     {
         yield return new WaitUntil(() => speaker.IsReady);
         yield return speaker.RespondTo(content).Then(callback);

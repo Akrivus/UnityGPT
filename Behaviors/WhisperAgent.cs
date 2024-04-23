@@ -1,13 +1,10 @@
-﻿using RSG;
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 
-public class WhisperAgent : MonoBehaviour, IChatBehavior
+public class WhisperAgent : AbstractAgent
 {
     public event Action<string> OnTextGenerated;
-
-    public bool IsReady { get; set; }
 
     [SerializeField, TextArea(2, 10)]
     private string prompt;
@@ -18,12 +15,12 @@ public class WhisperAgent : MonoBehaviour, IChatBehavior
 
     public WhisperTextGenerator Whisper { get; private set; }
 
-    public IEnumerator RespondTo(string content, Action<string> callback)
+    public override IEnumerator RespondTo(string content, Action<string> callback)
     {
         yield return new WaitUntil(() => IsReady);
         IsReady = false;
-        yield return Whisper.RespondTo(content).Then(
-            SetReady + callback);
+        yield return Whisper.RespondTo(content)
+            .Then(SetReady + callback);
         yield return new WaitUntil(() => IsReady);
     }
 

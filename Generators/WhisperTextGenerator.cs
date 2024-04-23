@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class WhisperTextGenerator : ITextGenerator
 {
-    const string URI = "https://api.openai.com/v1/audio/transcriptions";
+    private const string URI = "https://api.openai.com/v1/audio/transcriptions";
 
     public event Func<string, IPromise<string>> OnTextGenerated;
     public event Action<string[]> OnContextReset;
@@ -51,8 +51,7 @@ public class WhisperTextGenerator : ITextGenerator
 
     private IPromise<string> UploadAudioAndGenerateText(AudioClip clip)
     {
-        var body = new GenerateSpeechToText(context, temperature,
-            clip.ToByteArray(recorder.NoiseFloor));
+        var body = new GenerateSpeechToText(context, temperature, clip.ToByteArray(recorder.NoiseFloor));
         return RestClient.Post(new RequestHelper()
         {
             Uri = URI,

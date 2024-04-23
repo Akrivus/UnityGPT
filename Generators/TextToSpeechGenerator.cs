@@ -6,7 +6,7 @@ using static GenerateTextToSpeech;
 
 public class TextToSpeechGenerator : ITextToSpeechGenerator
 {
-    const string URI = "https://api.openai.com/v1/audio/speech";
+    private const string URI = "https://api.openai.com/v1/audio/speech";
 
     public event Action<AudioClip> OnSpeechGenerated;
 

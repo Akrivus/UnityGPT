@@ -17,15 +17,18 @@ public static class RestClientExtensions
         },
     };
 
-    public static IPromise<T> Post<T>(string uri, object @object) => RestClient.Post(uri, Serialize(@object))
-        .Then(response => response.Text).Then(text => Deserialize<T>(text));
+    public static IPromise<T> Post<T>(string uri, object @object)
+        => RestClient.Post(uri, Serialize(@object)).Then(response => response.Text).Then(text => Deserialize<T>(text));
 
-    public static IPromise<T> Get<T>(string uri) => RestClient.Get(uri)
-        .Then(response => response.Text).Then(text => Deserialize<T>(text));
+    public static IPromise<T> Get<T>(string uri)
+        => RestClient.Get(uri).Then(response => response.Text).Then(text => Deserialize<T>(text));
 
-    public static T Deserialize<T>(string text) => JsonConvert.DeserializeObject<T>(text, DefaultSettings);
+    public static T Deserialize<T>(string text)
+        => JsonConvert.DeserializeObject<T>(text, DefaultSettings);
 
-    public static object Deserialize(string text, Type type) => JsonConvert.DeserializeObject(text, type, DefaultSettings);
+    public static object Deserialize(string text, Type type)
+        => JsonConvert.DeserializeObject(text, type, DefaultSettings);
 
-    public static string Serialize(object @object) => JsonConvert.SerializeObject(@object, DefaultSettings);
+    public static string Serialize(object @object)
+        => JsonConvert.SerializeObject(@object, DefaultSettings);
 }

@@ -15,7 +15,7 @@ public enum EmbeddingModel
 public enum TextModel
 {
     [EnumMember(Value = "gpt-3.5-turbo")]
-    GPT_3p5_Turbo,
+    GPT_3_Turbo,
     [EnumMember(Value = "gpt-4-turbo")]
     GPT_4_Turbo
 }

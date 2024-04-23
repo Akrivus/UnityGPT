@@ -1,7 +1,6 @@
 ﻿using RSG;
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using static Message;
 
 public class TextGenerator : ITextGenerator, IToolCaller
@@ -11,7 +10,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
     public event Func<string, IPromise<string>> OnTextGenerated;
     public event Action<string[]> OnContextReset;
 
-    public TextModel Model { get; set; } = TextModel.GPT_3p5_Turbo;
+    public TextModel Model { get; set; } = TextModel.GPT_3_Turbo;
     public int MaxTokens { get; set; } = 1024;
     public float Temperature { get; set; } = 0.5F;
     public string ToolChoice { get; set; } = null;

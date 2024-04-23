@@ -17,16 +17,11 @@ public class VoiceRecorder : MonoBehaviour
 
     [Header("Voice Detection")]
     [SerializeField]
-    private float noiseFloor = 0.02f;
-    [SerializeField]
     private float maxPauseLength = 2f;
     [SerializeField]
     private float sensitivity = 1.2f;
 
-    private float noiseLevel;
-    private float secondsOfSilence;
     private bool hasVoiceBeenDetected;
-
     private float[] _data;
     private int _position;
     private AudioClip _clip;
@@ -35,18 +30,39 @@ public class VoiceRecorder : MonoBehaviour
 
     public Promise<AudioClip> Recording { get; private set; }
     public Promise<float> Calibrating { get; private set; }
-
-    public VoiceRecorderUI UI { get; private set; }
-    public bool IsPaused { get; set; }
-
-    public float NoiseFloor => noiseFloor;
-    public float NoiseLevel => noiseLevel;
-    public float SecondsOfSilence => secondsOfSilence;
     public float MaxPauseLength => maxPauseLength;
+
+    public float NoiseFloor { get; private set; }
+    public float NoiseLevel { get; private set; }
+    public float SecondsOfSilence { get; private set; }
 
     public bool IsCalibrating { get; private set; }
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
+
+    private void Awake()
+    {
+        _stopwatch = new Stopwatch();
+    }
+
+    private void Start()
+    {
+        microphone.readyEvent.AddListener(OnMicrophoneReady);
+        microphone.deviceListEvent.AddListener(SetDeviceList);
+        microphone.dataEvent.AddListener(OnDataReceived);
+        _stopwatch.Start();
+        if (microphone.devices?.Count > 0)
+            _device = microphone.devices[0];
+    }
+
+    private void FixedUpdate()
+    {
+        if (!IsRecording) return;
+        SecondsOfSilence = (float)_stopwatch.Elapsed.TotalSeconds;
+        if (SecondsOfSilence > maxPauseLength &&
+           (IsCalibrating || hasVoiceBeenDetected))
+            StopRecord();
+    }
 
     public IPromise<AudioClip> Record()
     {
@@ -72,14 +88,14 @@ public class VoiceRecorder : MonoBehaviour
         if (IsRecording) return null;
         IsCalibrating = true;
         Calibrating = new Promise<float>();
-        noiseFloor = 0f;
+        NoiseFloor = 0f;
 
         PrepareMicrophone();
 
         return Calibrating.Then(noise => {
             IsCalibrating = false;
-            noiseFloor = noise;
-            return noiseFloor;
+            NoiseFloor = noise;
+            return NoiseFloor;
         });
     }
 
@@ -114,37 +130,12 @@ public class VoiceRecorder : MonoBehaviour
         _device = devices[0];
     }
 
-    void Awake()
-    {
-        _stopwatch = new Stopwatch();
-        UI = GetComponent<VoiceRecorderUI>();
-    }
-
-    void Start()
-    {
-        microphone.readyEvent.AddListener(OnMicrophoneReady);
-        microphone.deviceListEvent.AddListener(SetDeviceList);
-        microphone.dataEvent.AddListener(OnDataReceived);
-        _stopwatch.Start();
-        if (microphone.devices?.Count > 0)
-            _device = microphone.devices[0];
-    }
-
-    void FixedUpdate()
-    {
-        if (!IsRecording) return;
-        secondsOfSilence = (float)_stopwatch.Elapsed.TotalSeconds;
-        if (secondsOfSilence > maxPauseLength &&
-           (IsCalibrating || hasVoiceBeenDetected))
-            StopRecord();
-    }
-
-    void SendDataToEvents()
+    private void SendDataToEvents()
     {
         if (IsCalibrating)
         {
             IsCalibrating = false;
-            Calibrating.Resolve(noiseFloor);
+            Calibrating.Resolve(NoiseFloor);
         }
         else
         {
@@ -154,25 +145,25 @@ public class VoiceRecorder : MonoBehaviour
         }
     }
 
-    bool DetectVoice(float[] data)
+    private bool DetectVoice(float[] data)
     {
         for (var i = 0; i < data.Length; i++)
-            noiseLevel += Mathf.Abs(data[i]);
-        noiseLevel /= data.Length;
+            NoiseLevel += Mathf.Abs(data[i]);
+        NoiseLevel /= data.Length;
 
-        if (IsCalibrating && noiseLevel > noiseFloor)
-            noiseFloor = noiseLevel * sensitivity;
+        if (IsCalibrating && NoiseLevel > NoiseFloor)
+            NoiseFloor = NoiseLevel * sensitivity;
         else if (IsRecording)
-            return noiseLevel > noiseFloor;
+            return NoiseLevel > NoiseFloor;
         return false;
     }
 
-    void AllocateClip()
+    private void AllocateClip()
     {
         _data = new float[5760000];
     }
 
-    void CreateClip()
+    private void CreateClip()
     {
         var length = (int)(_data.Length * (_device.sampleRate / 44100f));
         _clip = AudioClip.Create("Voice", length, 1, _device.sampleRate, false);

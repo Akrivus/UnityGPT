@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 {
-    readonly static IPromise<string> Busy = Promise<string>.Rejected(new Exception("Speech generation is already in progress."));
+    private readonly static IPromise<string> Busy = Promise<string>.Rejected(new Exception("Speech generation is already in progress."));
 
     public event Func<string, IPromise<string>> OnTextGenerated;
     public event Action<string[]> OnContextReset;
@@ -50,8 +50,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         IsReady = false;
         IsGeneratingText = true;
         fragments.Clear();
-        return textGenerator.RespondTo(content,
-            GenerateSpeechFragments + tokenCallback)
+        return textGenerator.RespondTo(content, GenerateSpeechFragments + tokenCallback)
             .Then(Respond);
     }
 
@@ -64,8 +63,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
             yield return new WaitUntil(fragment.IsReady);
             IsGeneratingSpeech = true;
             OnSpeechPlaying?.Invoke(fragment.Text);
-            yield return new WaitForSeconds(
-                fragment.Play(source, pitch));
+            yield return new WaitForSeconds(fragment.Play(source, pitch));
             IsGeneratingSpeech = false;
         }
         if (IsGeneratingText)

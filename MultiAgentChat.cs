@@ -3,7 +3,8 @@ using UnityEngine;
 
 public class MultiAgentChat : MonoBehaviour
 {
-    [SerializeField] string message;
+    [SerializeField]
+    private string message;
 
     private IChatBehavior[] agents;
     private int i = 0;
