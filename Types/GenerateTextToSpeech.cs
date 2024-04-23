@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using UnityEngine;
-
+﻿
 public class GenerateTextToSpeech
 {
     public TextToSpeechModel Model { get; set; }
@@ -30,18 +28,5 @@ public class GenerateTextToSpeech
         Wav,
         Mp3,
         Ogg
-    }
-}
-
-public class TextToSpeech
-{
-    public string Text { get; set; }
-    public AudioClip Speech { get; set; }
-
-    public bool IsReady => Speech != null;
-
-    public TextToSpeech(string text)
-    {
-        Text = text;
     }
 }

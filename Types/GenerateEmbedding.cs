@@ -3,9 +3,9 @@ public class GenerateEmbedding
 {
     public EmbeddingModel Model { get; set; } = EmbeddingModel.TextEmbedding3Small;
     public string Input { get; set; }
-    public int Dimensions { get; set; } = 512;
+    public int Dimensions { get; set; } = 1536;
 
-    public GenerateEmbedding(string input, int dimensions = 512)
+    public GenerateEmbedding(string input, int dimensions = 1536)
     {
         Input = input;
         Dimensions = dimensions;

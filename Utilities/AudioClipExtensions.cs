@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class AudioClipExtensions
 {
-    static int bitsPerSample = 16;
+    private const int BITS_PER_SAMPLE = 16;
 
     public static byte[] ToByteArray(this AudioClip clip, float floor)
     {
@@ -51,7 +51,7 @@ public static class AudioClipExtensions
             BitConverter.GetBytes((short)(data[i] * short.MaxValue)).CopyTo(bytes, offset + i * 2);
     }
 
-    static int WriteHeader(this AudioClip clip, byte[] bytes, int offset = 0)
+    private static int WriteHeader(this AudioClip clip, byte[] bytes, int offset = 0)
     {
         offset = WriteData(Encoding.UTF8.GetBytes("RIFF"), bytes, offset);
         offset = WriteData(BitConverter.GetBytes(36 + bytes.Length), bytes, offset);
@@ -61,15 +61,15 @@ public static class AudioClipExtensions
         offset = WriteData(BitConverter.GetBytes((ushort)(1)), bytes, offset);
         offset = WriteData(BitConverter.GetBytes((ushort)(clip.channels)), bytes, offset);
         offset = WriteData(BitConverter.GetBytes((uint)(clip.frequency)), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((uint)(clip.frequency * clip.channels * bitsPerSample)), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((ushort)(clip.channels * bitsPerSample)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((uint)(clip.frequency * clip.channels * BITS_PER_SAMPLE)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((ushort)(clip.channels * BITS_PER_SAMPLE)), bytes, offset);
         offset = WriteData(BitConverter.GetBytes((ushort)(16)), bytes, offset);
         offset = WriteData(Encoding.UTF8.GetBytes("data"), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((uint)(clip.samples * clip.channels - bitsPerSample)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((uint)(clip.samples * clip.channels - BITS_PER_SAMPLE)), bytes, offset);
         return offset;
     }
 
-    static int WriteData(byte[] buffer, byte[] bytes, int offset)
+    private static int WriteData(byte[] buffer, byte[] bytes, int offset)
     {
         buffer.CopyTo(bytes, offset);
         return offset + buffer.Length;
