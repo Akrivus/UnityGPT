@@ -15,6 +15,11 @@ public class WhisperAgent : AbstractAgent
 
     public WhisperTextGenerator Whisper { get; private set; }
 
+    private void Awake()
+    {
+        Whisper = new WhisperTextGenerator(recorder, prompt, temperature);
+    }
+
     public override IEnumerator RespondTo(string content, Action<string> callback)
     {
         yield return new WaitUntil(() => IsReady);
@@ -28,10 +33,5 @@ public class WhisperAgent : AbstractAgent
     {
         IsReady = true;
         OnTextGenerated?.Invoke(text);
-    }
-
-    private void Awake()
-    {
-        Whisper = new WhisperTextGenerator(recorder, prompt, temperature);
     }
 }

@@ -1,7 +1,5 @@
 ﻿using RSG;
 using System;
-using System.Reflection;
-using UnityEngine;
 
 public class TextAnalyzer
 {
@@ -20,11 +18,7 @@ public class TextAnalyzer
     public IPromise<float> Analyze(string text)
     {
         generator.ResetContext();
-        return generator.Execute<Sentiment>(text).Then((message) =>
-        {
-            Debug.Log(message);
-            return Promise<float>.Resolved(Sentiment.Score);
-        });
+        return generator.Execute<Sentiment>(text).Then((message) => Sentiment.Score);
     }
 
     public class Sentiment : IToolCall

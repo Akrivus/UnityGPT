@@ -25,8 +25,8 @@ public class VoiceRecorder : MonoBehaviour
     private float[] _data;
     private int _position;
     private AudioClip _clip;
-    private Stopwatch _stopwatch;
     private Device _device;
+    private Stopwatch _stopwatch = new Stopwatch();
 
     public Promise<AudioClip> Recording { get; private set; }
     public Promise<float> Calibrating { get; private set; }
@@ -39,11 +39,6 @@ public class VoiceRecorder : MonoBehaviour
     public bool IsCalibrating { get; private set; }
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
-
-    private void Awake()
-    {
-        _stopwatch = new Stopwatch();
-    }
 
     private void Start()
     {
@@ -85,7 +80,7 @@ public class VoiceRecorder : MonoBehaviour
 
     public IPromise<float> Calibrate()
     {
-        if (IsRecording) return null;
+        if (IsCalibrating) return null;
         IsCalibrating = true;
         Calibrating = new Promise<float>();
         NoiseFloor = 0f;
