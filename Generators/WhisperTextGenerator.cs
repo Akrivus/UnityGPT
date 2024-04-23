@@ -7,7 +7,8 @@ public class WhisperTextGenerator : ITextGenerator
 {
     const string URI = "https://api.openai.com/v1/audio/transcriptions";
 
-    public event Action<string> OnTextTranscription;
+    public event Func<string, IPromise<string>> OnTextGenerated;
+    public event Action<string[]> OnContextReset;
 
     private VoiceRecorder recorder;
     private string context = "";
@@ -39,12 +40,13 @@ public class WhisperTextGenerator : ITextGenerator
 
     public void ResetContext()
     {
+        OnContextReset?.Invoke(new string[0]);
         context = string.Empty;
     }
 
-    public void AddContext(string message)
+    public void AddContext(string context)
     {
-        this.context += message;
+        this.context += context;
     }
 
     private IPromise<string> UploadAudioAndGenerateText(AudioClip clip)
@@ -60,9 +62,9 @@ public class WhisperTextGenerator : ITextGenerator
             .Then((transcription) => DispatchTranscription(transcription.Text));
     }
 
-    private string DispatchTranscription(string text)
+    private IPromise<string> DispatchTranscription(string text)
     {
-        OnTextTranscription?.Invoke(text);
-        return text;
+        return OnTextGenerated?.Invoke(text)
+            ?? Promise<string>.Resolved(text);
     }
 }

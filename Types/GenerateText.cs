@@ -119,7 +119,7 @@ public class GeneratedText<T> where T : Choice
     public string Content => Choice.Content;
     public FinishReasons FinishReason => Choice.FinishReason;
     public List<ToolCallReference> ToolCalls => Choice.Message.ToolCalls;
-    public bool ToolCall => FinishReason == FinishReasons.ToolCalls;
+    public bool ToolCall => ToolCalls.Count > 0;
 }
 
 public class Choice

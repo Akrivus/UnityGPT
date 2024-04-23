@@ -1,25 +1,31 @@
 using System;
 using System.Collections;
-using System.Reflection;
 using UnityEngine;
 
 public abstract class ToolCall<T> : MonoBehaviour, IToolCall
 {
-    public MethodInfo EntryPoint => GetType().GetMethod("CallSafe");
     public Type ArgType => typeof(T);
-    public virtual Tool Tool => new Tool(ArgType);
+    public virtual Tool Tool => new Tool(ToolName, Description, Params);
+    public string Execute(object args) => CallSafe((T) args);
 
     public bool Pending => !_complete;
     public bool Complete => _complete;
 
     private bool _complete = true;
 
-    public abstract string OnCall(IToolCaller caller, T args);
+    [SerializeField]
+    public string ToolName;
+    [SerializeField, TextArea(2, 5)]
+    public string Description;
+    [SerializeField]
+    public ToolParam[] Params;
 
-    public string CallSafe(IToolCaller caller, T args)
+    public abstract string OnCall(T args);
+
+    public string CallSafe(T args)
     {
         _complete = true;
-        return OnCall(caller, args);
+        return OnCall(args);
     }
 
     public void ContinueCallWith(IEnumerator coroutine)

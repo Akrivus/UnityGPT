@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class WhisperAgent : MonoBehaviour, IChatAgent
+public class WhisperAgent : MonoBehaviour, IChatBehavior
 {
     public event Action<string> OnTextGenerated;
 

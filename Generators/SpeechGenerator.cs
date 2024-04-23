@@ -8,13 +8,23 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 {
     readonly static IPromise<string> Busy = Promise<string>.Rejected(new Exception("Speech generation is already in progress."));
 
-    public event Action<string> OnTextGenerated;
+    public event Func<string, IPromise<string>> OnTextGenerated;
+    public event Action<string[]> OnContextReset;
+
+    public event Action<string> OnStreamReceived;
+    public event Action<string> OnStreamEnded;
+
     public event Action<string> OnSpeechPlaying;
     public event Action OnSpeechComplete;
 
     public bool IsReady { get; private set; } = true;
     public bool IsGeneratingSpeech { get; private set; }
     public bool IsGeneratingText { get; private set; }
+    public string Context
+    {
+        get => textGenerator.Context;
+        set => textGenerator.Context = value;
+    }
 
     private IStreamingTextGenerator textGenerator;
     private WordMapping wordMapping;
@@ -26,6 +36,8 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     public SpeechGenerator(IStreamingTextGenerator textGenerator, WordMapping wordMapping, TextToSpeechModel textToSpeechModel, GenerateTextToSpeech.Voices voice, float pitch = 1.0f) : base(textToSpeechModel, voice)
     {
         this.textGenerator = textGenerator;
+        this.textGenerator.OnTextGenerated += (text) => OnTextGenerated?.Invoke(text);
+        this.textGenerator.OnContextReset += (context) => OnContextReset?.Invoke(context);
         this.wordMapping = wordMapping;
         this.pitch = pitch;
     }
@@ -71,7 +83,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 
     private void GenerateSpeechFragment()
     {
-        OnTextGenerated?.Invoke(fragment.Text);
+        OnStreamReceived?.Invoke(fragment.Text);
         fragment.Generate(Generate(fragment.Text));
         fragments.Add(fragment);
         fragment = new SpeechFragment();
@@ -80,7 +92,23 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private string Respond(string text)
     {
         IsGeneratingText = false;
+        OnStreamEnded?.Invoke(text);
         return text;
+    }
+
+    public IPromise<string> SendContext()
+    {
+        return textGenerator.SendContext();
+    }
+
+    public void ResetContext()
+    {
+        textGenerator.ResetContext();
+    }
+
+    public void AddContext(string message)
+    {
+        textGenerator.AddContext(message);
     }
 }
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
 
-public interface IChatAgent
+public interface IChatBehavior
 {
     public bool IsReady { get; }
 

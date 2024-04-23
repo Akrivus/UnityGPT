@@ -3,11 +3,12 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class SpeechAgent : MonoBehaviour, IChatAgent
+public class SpeechAgent : MonoBehaviour, IChatBehavior
 {
-    public event Action<string> OnTextGenerated;
     public event Action<string> OnSpeechPlaying;
     public event Action OnSpeechComplete;
+
+    public event Func<string, IPromise<string>> OnTextGenerated;
 
     public bool IsReady => speaker.IsReady;
 

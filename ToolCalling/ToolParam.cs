@@ -1,7 +1,5 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
 public enum ParameterType
@@ -11,8 +9,11 @@ public enum ParameterType
 
 public class ToolParam
 {
+    [SerializeField]
     public ParameterType Type;
+    [SerializeField]
     public string Name;
+    [SerializeField]
     public string Description;
 
     [JsonIgnore]
@@ -39,6 +40,7 @@ public class ToolParam
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public Dictionary<string, ToolParam> Properties;
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [SerializeField]
     public string[] Required;
 
     [JsonIgnore]
@@ -55,75 +57,6 @@ public class ToolParam
         Definitions = new List<ToolParam>(definitions);
         Properties = GenerateProperties();
         Required = GenerateRequiredFields();
-    }
-
-    public ToolParam(ToolParamAttribute attr) : this(attr.Type, attr.Name, attr.Description, attr.Required)
-    {
-        MinLength = attr.Length.Min;
-        MaxLength = attr.Length.Max;
-        Pattern = attr.Pattern;
-        Enum = attr.Enum;
-        Format = attr.Format;
-        Minimum = attr.Range.Min;
-        Maximum = attr.Range.Max;
-        MultipleOf = attr.Range.MultipleOf;
-        Items = attr.Items;
-        Properties = attr.Properties;
-    }
-
-    private Dictionary<string, ToolParam> GenerateProperties()
-    {
-        var properties = new Dictionary<string, ToolParam>();
-        foreach (var definition in Definitions)
-            properties[definition.Name] = definition;
-        return properties;
-    }
-
-    private string[] GenerateRequiredFields()
-    {
-        var required = new List<string>();
-        foreach (var definition in Definitions)
-            if (definition.IsRequired)
-                required.Add(definition.Name);
-        return required.ToArray();
-    }
-}
-
-public class Params
-{
-    [HideInInspector]
-    public readonly ParameterType Type = ParameterType.Object;
-    public Dictionary<string, ToolParam> Properties;
-    public string[] Required;
-
-    [JsonIgnore]
-    public ToolParam[] Definitions;
-
-    public Params() { }
-
-    public Params(params ToolParam[] definitions)
-    {
-        Definitions = definitions;
-    }
-
-    public Params(Type type)
-    {
-        Definitions = GenerateDefinitions(type);
-        Properties = GenerateProperties();
-        Required = GenerateRequiredFields();
-    }
-
-    private ToolParam[] GenerateDefinitions(Type type)
-    {
-        var definitions = new List<ToolParam>();
-        var fields = type.GetFields();
-        foreach (var field in fields)
-        {
-            var _ = field.GetCustomAttribute<ToolParamAttribute>();
-            if (_ != null)
-                definitions.Add(new ToolParam(_));
-        }
-        return definitions.ToArray();
     }
 
     private Dictionary<string, ToolParam> GenerateProperties()

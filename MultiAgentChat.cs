@@ -5,14 +5,14 @@ public class MultiAgentChat : MonoBehaviour
 {
     [SerializeField] string message;
 
-    private IChatAgent[] agents;
+    private IChatBehavior[] agents;
     private int i = 0;
 
     public bool IsExited { get; private set; }
 
     private void Awake()
     {
-        agents = GetComponentsInChildren<IChatAgent>();
+        agents = GetComponentsInChildren<IChatBehavior>();
     }
 
     private void Start()

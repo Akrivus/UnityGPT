@@ -1,4 +1,5 @@
 ﻿using RSG;
+using System;
 
 public interface ITextGenerator
 {
@@ -7,4 +8,7 @@ public interface ITextGenerator
     public IPromise<string> SendContext();
     public void ResetContext();
     public void AddContext(string message);
+
+    public event Func<string, IPromise<string>> OnTextGenerated;
+    public event Action<string[]> OnContextReset;
 }
