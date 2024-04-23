@@ -4,7 +4,7 @@ using UnityEngine;
 
 public abstract class AbstractAgent : MonoBehaviour, IChatBehavior
 {
-    public virtual bool IsReady { get; protected set; }
+    public virtual bool IsReady { get; set; }
 
     public abstract IEnumerator RespondTo(string message, Action<string> callback);
 }
