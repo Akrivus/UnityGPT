@@ -22,10 +22,12 @@ public class VoiceRecorder : MonoBehaviour
     private float sensitivity = 1.2f;
 
     private bool hasVoiceBeenDetected;
+
     private float[] _data;
     private int _position;
     private AudioClip _clip;
     private Device _device;
+
     private Stopwatch _stopwatch = new Stopwatch();
 
     public Promise<AudioClip> Recording { get; private set; }

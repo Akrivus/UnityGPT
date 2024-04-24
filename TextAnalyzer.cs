@@ -28,13 +28,14 @@ public class TextAnalyzer
             public float Score { get; set; }
         }
 
+        public static float Score { get; private set; }
+
         public Type ArgType => typeof(Args);
         public Tool Tool => new Tool("Sentiment",
             "Reports sentiment score.",
             new NumberParam("Score", "Sentiment score.", true, -1, 1));
-        public string Execute(object args) => Execute((Args) args);
 
-        public static float Score { get; private set; }
+        public string Execute(object args) => Execute((Args) args);
 
         public string Execute(Args args)
         {
