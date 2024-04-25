@@ -36,7 +36,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
 
     public IPromise<string> RespondTo(string content)
     {
-        messages.Add(new Message(content, Roles.User));
+        AddContext(content);
         return SendContext();
     }
 
@@ -62,9 +62,14 @@ public class TextGenerator : ITextGenerator, IToolCaller
         messages.Add(new Message(message, Roles.User));
     }
 
+    public void AddMessage(string message)
+    {
+        messages.Add(new Message(message, Roles.Assistant));
+    }
+
     private IPromise<string> DispatchGeneratedText(GeneratedText<Choice> text)
     {
-        messages.Add(text.Choice.Message);
+        AddMessage(text.Content);
         return ExecuteToolCalls(text.ToolCalls, text.Content)
             .Then((content) => OnTextGenerated?.Invoke(content)
                 ?? Promise<string>.Resolved(content));

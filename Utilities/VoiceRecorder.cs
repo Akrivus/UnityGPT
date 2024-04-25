@@ -19,7 +19,7 @@ public class VoiceRecorder : MonoBehaviour
     [SerializeField]
     private float maxPauseLength = 2f;
     [SerializeField]
-    private float sensitivity = 1.2f;
+    private float exponent = 10f;
 
     private bool hasVoiceBeenDetected;
 
@@ -149,7 +149,7 @@ public class VoiceRecorder : MonoBehaviour
         NoiseLevel /= data.Length;
 
         if (IsCalibrating && NoiseLevel > NoiseFloor)
-            NoiseFloor = NoiseLevel * sensitivity;
+            NoiseFloor = NoiseLevel * exponent;
         else if (IsRecording)
             return NoiseLevel > NoiseFloor;
         return false;

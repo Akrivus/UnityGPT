@@ -1,6 +1,7 @@
 ﻿using Proyecto26;
 using RSG;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class WhisperTextGenerator : ITextGenerator
@@ -14,17 +15,22 @@ public class WhisperTextGenerator : ITextGenerator
     private string context = "";
     private float temperature = 0.5F;
 
+    private List<string> messages = new List<string>();
+
+    public List<string> Messages => messages;
+
     public string Context
     {
-        get => context;
-        set => context = value;
+        get => messages[messages.Count - 1];
+        set => messages[messages.Count - 1] = value;
     }
 
-    public WhisperTextGenerator(VoiceRecorder recorder, string context, float temperature)
+    public WhisperTextGenerator(VoiceRecorder recorder, float temperature, string context = "")
     {
         this.recorder = recorder;
-        this.context = context;
         this.temperature = temperature;
+        this.context = context;
+        AddContext(context);
     }
 
     public IPromise<string> RespondTo(string context)
@@ -40,13 +46,19 @@ public class WhisperTextGenerator : ITextGenerator
 
     public void ResetContext()
     {
-        OnContextReset?.Invoke(new string[0]);
-        context = string.Empty;
+        OnContextReset?.Invoke(messages.ToArray());
+        messages.Clear();
+        messages.Add(context);
     }
 
     public void AddContext(string context)
     {
-        this.context += context;
+        messages.Add(context);
+    }
+
+    public void AddMessage(string message)
+    {
+        messages.Add(message);
     }
 
     private IPromise<string> UploadAudioAndGenerateText(AudioClip clip)
@@ -63,6 +75,7 @@ public class WhisperTextGenerator : ITextGenerator
 
     private IPromise<string> DispatchTranscription(string text)
     {
+        Context = text;
         return OnTextGenerated?.Invoke(text)
             ?? Promise<string>.Resolved(text);
     }

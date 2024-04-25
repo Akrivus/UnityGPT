@@ -104,9 +104,14 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         textGenerator.ResetContext();
     }
 
-    public void AddContext(string message)
+    public void AddContext(string context)
     {
-        textGenerator.AddContext(message);
+        textGenerator.AddContext(context);
+    }
+
+    public void AddMessage(string message)
+    {
+        textGenerator.AddMessage(message);
     }
 }
 
