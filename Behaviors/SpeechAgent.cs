@@ -5,10 +5,22 @@ using UnityEngine;
 
 public class SpeechAgent : AbstractAgent
 {
-    public event Action<string> OnSpeechPlaying;
-    public event Action OnSpeechComplete;
+    public event Action<string> OnSpeechPlaying
+    {
+        add => speaker.OnSpeechPlaying += value;
+        remove => speaker.OnSpeechPlaying -= value;
+    }
+    public event Action OnSpeechComplete
+    {
+        add => speaker.OnSpeechComplete += value;
+        remove => speaker.OnSpeechComplete -= value;
+    }
 
-    public event Func<string, IPromise<string>> OnTextGenerated;
+    public event Action<string> OnTextGenerated
+    {
+        add => speaker.OnStreamEnded += value;
+        remove => speaker.OnStreamEnded -= value;
+    }
 
     public override bool IsReady => speaker.IsReady;
 
@@ -46,9 +58,6 @@ public class SpeechAgent : AbstractAgent
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         textGenerator = new StreamingTextGenerator(prompt, model, maxTokens, temperature);
         speaker = new SpeechGenerator(textGenerator, wordMapping, TextToSpeechModel.TTS_1, voice, pitch);
-        speaker.OnTextGenerated += OnTextGenerated;
-        speaker.OnSpeechPlaying += OnSpeechPlaying;
-        speaker.OnSpeechComplete += OnSpeechComplete;
     }
 
     public override IEnumerator RespondTo(string content, Action<string> callback)

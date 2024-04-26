@@ -7,10 +7,14 @@ public class WhisperAgent : AbstractAgent
 {
     public event Action<string> OnTextGenerated;
 
+    [SerializeField]
+    private TextModel model;
     [SerializeField, TextArea(2, 10)]
     private string prompt;
     [SerializeField]
     private string context;
+    [SerializeField]
+    private string buzzwords;
     [SerializeField]
     private int maxTokens = 1024;
     [SerializeField, Range(0.0f, 1.0f)]
@@ -24,16 +28,15 @@ public class WhisperAgent : AbstractAgent
     private void Awake()
     {
         Whisper = new WhisperTextGenerator(recorder, temperature, prompt);
-        ContextGenerator = new TextGenerator(prompt, TextModel.GPT_3_Turbo, maxTokens, temperature);
-        ContextGenerator.OnTextGenerated += SetNewContext;
+        ContextGenerator = new TextGenerator(prompt, model, maxTokens, temperature);
+        SetNewContext(context);
     }
 
     public override IEnumerator RespondTo(string content, Action<string> callback)
     {
-        ContextGenerator.RespondTo(content);
-
         yield return new WaitUntil(() => IsReady);
         IsReady = false;
+        Debug.Log(context);
         yield return Whisper.RespondTo(context)
             .Then(SetReady + callback);
         yield return new WaitUntil(() => IsReady);
@@ -46,6 +49,7 @@ public class WhisperAgent : AbstractAgent
         Whisper.AddMessage(text);
     }
 
-    private IPromise<string> SetNewContext(string context)
-        => Promise<string>.Resolved(this.context = context);
+    public IPromise<string> SetNewContext(string content)
+        => ContextGenerator.RespondTo(content)
+        .Then(context => this.context = string.Format("{0} {1}", context, buzzwords));
 }

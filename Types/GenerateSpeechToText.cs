@@ -23,7 +23,7 @@ public class GenerateSpeechToText
         form.AddField("model", "whisper-1");
         form.AddField("prompt", Prompt);
         form.AddField("temperature", Temperature.ToString());
-        form.AddBinaryData("file", Data, "speech.wav");
+        form.AddBinaryData("file", Data, "speech.wav", "audio/wav");
         return form;
     }
 }

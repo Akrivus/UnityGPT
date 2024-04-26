@@ -11,9 +11,11 @@ public class WhisperTextGenerator : ITextGenerator
     public event Func<string, IPromise<string>> OnTextGenerated;
     public event Action<string[]> OnContextReset;
 
+    public event Action<float[]> OnSpeechReceived;
+
     private VoiceRecorder recorder;
-    private string context = "";
     private float temperature = 0.5F;
+    private string context;
 
     private List<string> messages = new List<string>();
 
@@ -22,7 +24,7 @@ public class WhisperTextGenerator : ITextGenerator
     public string Context
     {
         get => messages[messages.Count - 1];
-        set => messages[messages.Count - 1] = value;
+        set => AddContext(value);
     }
 
     public WhisperTextGenerator(VoiceRecorder recorder, float temperature, string context = "")
@@ -41,7 +43,7 @@ public class WhisperTextGenerator : ITextGenerator
 
     public IPromise<string> SendContext()
     {
-        return recorder.Record().Then(clip => UploadAudioAndGenerateText(clip));
+        return recorder.Record().Then(data => UploadAudioAndGenerateText(data));
     }
 
     public void ResetContext()
@@ -61,9 +63,13 @@ public class WhisperTextGenerator : ITextGenerator
         messages.Add(message);
     }
 
-    private IPromise<string> UploadAudioAndGenerateText(AudioClip clip)
+    private IPromise<string> UploadAudioAndGenerateText(float[] data)
     {
-        var body = new GenerateSpeechToText(context, temperature, clip.ToByteArray(recorder.NoiseFloor));
+        OnSpeechReceived?.Invoke(data);
+
+        var bytes = AudioClipExtensions.ToByteArray(data, recorder.Channels, recorder.Frequency);
+        var body = new GenerateSpeechToText(Context, temperature, bytes);
+
         return RestClient.Post(new RequestHelper()
         {
             Uri = URI,
@@ -75,7 +81,6 @@ public class WhisperTextGenerator : ITextGenerator
 
     private IPromise<string> DispatchTranscription(string text)
     {
-        Context = text;
         return OnTextGenerated?.Invoke(text)
             ?? Promise<string>.Resolved(text);
     }

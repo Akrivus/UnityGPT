@@ -8,8 +8,16 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 {
     private readonly static IPromise<string> Busy = Promise<string>.Rejected(new Exception("Speech generation is already in progress."));
 
-    public event Func<string, IPromise<string>> OnTextGenerated;
-    public event Action<string[]> OnContextReset;
+    public event Func<string, IPromise<string>> OnTextGenerated
+    {
+        add => textGenerator.OnTextGenerated += value;
+        remove => textGenerator.OnTextGenerated -= value;
+    }
+    public event Action<string[]> OnContextReset
+    {
+        add => textGenerator.OnContextReset += value;
+        remove => textGenerator.OnContextReset -= value;
+    }
 
     public event Action<string> OnStreamReceived;
     public event Action<string> OnStreamEnded;
@@ -36,8 +44,6 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     public SpeechGenerator(IStreamingTextGenerator textGenerator, WordMapping wordMapping, TextToSpeechModel textToSpeechModel, GenerateTextToSpeech.Voices voice, float pitch = 1.0f) : base(textToSpeechModel, voice)
     {
         this.textGenerator = textGenerator;
-        this.textGenerator.OnTextGenerated += (text) => OnTextGenerated?.Invoke(text);
-        this.textGenerator.OnContextReset += (context) => OnContextReset?.Invoke(context);
         this.wordMapping = wordMapping;
         this.pitch = pitch;
     }

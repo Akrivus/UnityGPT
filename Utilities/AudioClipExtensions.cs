@@ -6,12 +6,33 @@ public static class AudioClipExtensions
 {
     private const int BITS_PER_SAMPLE = 16;
 
-    public static byte[] ToByteArray(this AudioClip clip, float floor)
+    public static byte[] ToByteArray(float[] data, int channels, int frequency)
+    {
+        var samples = data.Length / channels;
+        var bytes = new byte[44 + samples * channels * 2];
+        var offset = WriteHeader(samples, channels, frequency, bytes);
+
+        GetDataByteArray(data, channels, samples, bytes, offset);
+
+        return bytes;
+    }
+
+    public static byte[] ToByteArray(this AudioClip clip, float floor = 0)
     {
         clip = clip.Trim(floor / clip.frequency);
-        var bytes = new byte[44 + clip.samples * clip.channels * 2];
-        var offset = WriteHeader(clip, bytes);
-        clip.GetDataByteArray(bytes, offset);
+
+        var data = new float[clip.samples];
+        clip.GetData(data, 0);
+
+        var channels = clip.channels;
+        var frequency = clip.frequency;
+        var samples = clip.samples;
+
+        var bytes = new byte[44 + samples * channels * 2];
+        var offset = WriteHeader(samples, channels, frequency, bytes);
+
+        GetDataByteArray(data, channels, samples, bytes, offset);
+
         return bytes;
     }
 
@@ -41,17 +62,16 @@ public static class AudioClipExtensions
         return clip;
     }
 
-    public static void GetDataByteArray(this AudioClip clip, byte[] bytes, int offset = 0)
+    public static void GetDataByteArray(float[] data, int channels, int samples, byte[] bytes, int offset = 0)
     {
-        if (bytes.Length < offset + clip.samples * clip.channels)
+        if (bytes.Length < offset + samples * channels)
             throw new ArgumentException("Buffer is too small for this AudioClip.");
-        var data = new float[clip.samples];
-        clip.GetData(data, 0);
         for (int i = 0; i < data.Length; ++i)
-            BitConverter.GetBytes((short)(data[i] * short.MaxValue)).CopyTo(bytes, offset + i * 2);
+            BitConverter.GetBytes((short)(data[i] * short.MaxValue))
+                .CopyTo(bytes, offset + i * 2);
     }
 
-    private static int WriteHeader(this AudioClip clip, byte[] bytes, int offset = 0)
+    private static int WriteHeader(int samples, int channels, int frequency, byte[] bytes, int offset = 0)
     {
         offset = WriteData(Encoding.UTF8.GetBytes("RIFF"), bytes, offset);
         offset = WriteData(BitConverter.GetBytes(36 + bytes.Length), bytes, offset);
@@ -59,13 +79,13 @@ public static class AudioClipExtensions
         offset = WriteData(Encoding.UTF8.GetBytes("fmt "), bytes, offset);
         offset = WriteData(BitConverter.GetBytes(16), bytes, offset);
         offset = WriteData(BitConverter.GetBytes((ushort)(1)), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((ushort)(clip.channels)), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((uint)(clip.frequency)), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((uint)(clip.frequency * clip.channels * BITS_PER_SAMPLE)), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((ushort)(clip.channels * BITS_PER_SAMPLE)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((ushort)(channels)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((uint)(frequency)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((uint)(frequency * channels * BITS_PER_SAMPLE)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((ushort)(channels * BITS_PER_SAMPLE)), bytes, offset);
         offset = WriteData(BitConverter.GetBytes((ushort)(16)), bytes, offset);
         offset = WriteData(Encoding.UTF8.GetBytes("data"), bytes, offset);
-        offset = WriteData(BitConverter.GetBytes((uint)(clip.samples * clip.channels - BITS_PER_SAMPLE)), bytes, offset);
+        offset = WriteData(BitConverter.GetBytes((uint)(samples * channels - BITS_PER_SAMPLE)), bytes, offset);
         return offset;
     }
 

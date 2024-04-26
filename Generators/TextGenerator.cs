@@ -67,9 +67,9 @@ public class TextGenerator : ITextGenerator, IToolCaller
         messages.Add(new Message(message, Roles.Assistant));
     }
 
-    private IPromise<string> DispatchGeneratedText(GeneratedText<Choice> text)
+    public IPromise<string> DispatchGeneratedText(GeneratedText<Choice> text)
     {
-        AddMessage(text.Content);
+        messages.Add(text.Choice.Message);
         return ExecuteToolCalls(text.ToolCalls, text.Content)
             .Then((content) => OnTextGenerated?.Invoke(content)
                 ?? Promise<string>.Resolved(content));

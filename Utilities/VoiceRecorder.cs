@@ -1,4 +1,5 @@
 ﻿using RSG;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using uMicrophoneWebGL;
@@ -6,7 +7,7 @@ using UnityEngine;
 
 public class VoiceRecorder : MonoBehaviour
 {
-    public delegate void AudioClipHandler(AudioClip clip);
+    public delegate void AudioClipHandler(float[] clip);
     public delegate void ReadyHandler(VoiceRecorder recorder);
 
     public event AudioClipHandler OnRecordStop;
@@ -25,12 +26,10 @@ public class VoiceRecorder : MonoBehaviour
 
     private float[] _data;
     private int _position;
-    private AudioClip _clip;
-    private Device _device;
 
     private Stopwatch _stopwatch = new Stopwatch();
 
-    public Promise<AudioClip> Recording { get; private set; }
+    public Promise<float[]> Recording { get; private set; }
     public Promise<float> Calibrating { get; private set; }
     public float MaxPauseLength => maxPauseLength;
 
@@ -42,14 +41,15 @@ public class VoiceRecorder : MonoBehaviour
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
 
+    public int Frequency => microphone.selectedDevice.sampleRate;
+    public int Channels => 1;
+
     private void Start()
     {
         microphone.readyEvent.AddListener(OnMicrophoneReady);
         microphone.deviceListEvent.AddListener(SetDeviceList);
         microphone.dataEvent.AddListener(OnDataReceived);
         _stopwatch.Start();
-        if (microphone.devices?.Count > 0)
-            _device = microphone.devices[0];
     }
 
     private void FixedUpdate()
@@ -61,12 +61,10 @@ public class VoiceRecorder : MonoBehaviour
             StopRecord();
     }
 
-    public IPromise<AudioClip> Record()
+    public IPromise<float[]> Record()
     {
         if (IsRecording) return null;
-        Recording = new Promise<AudioClip>();
-        IsRecording = true;
-
+        Recording = new Promise<float[]>();
         PrepareMicrophone();
 
         return Recording;
@@ -98,19 +96,24 @@ public class VoiceRecorder : MonoBehaviour
 
     public void PrepareMicrophone()
     {
-        _stopwatch.Restart();
         AllocateClip();
         microphone.Begin();
         hasVoiceBeenDetected = false;
         IsRecording = true;
+        _stopwatch.Restart();
     }
 
     public void OnDataReceived(float[] data)
     {
         if (!IsRecording) return;
-        data.CopyTo(_data, _position);
-        _position += data.Length;
+
         var detected = DetectVoice(data);
+        if (IsCalibrating) return;
+
+        for (var i = 0; i < data.Length; i++)
+            _data[_position + i] = data[i];
+        _position += data.Length;
+
         if (IsVoiceDetected && detected)
             _stopwatch.Restart();
         IsVoiceDetected = detected;
@@ -124,7 +127,12 @@ public class VoiceRecorder : MonoBehaviour
 
     public void SetDeviceList(List<Device> devices)
     {
-        _device = devices[0];
+        for (int i = 0; i < devices.Count; i++)
+        {
+            var device = devices[i];
+            if (device.deviceId.Contains("Default"))
+                microphone.micIndex = i;
+        }
     }
 
     private void SendDataToEvents()
@@ -137,8 +145,8 @@ public class VoiceRecorder : MonoBehaviour
         else
         {
             CreateClip();
-            Recording.Resolve(_clip);
-            OnRecordStop?.Invoke(_clip);
+            Recording.Resolve(_data);
+            OnRecordStop?.Invoke(_data);
         }
     }
 
@@ -157,13 +165,14 @@ public class VoiceRecorder : MonoBehaviour
 
     private void AllocateClip()
     {
-        _data = new float[5760000];
+        _position = 0;
+        _data = new float[120 * Frequency];
     }
 
     private void CreateClip()
     {
-        var length = (int)(_data.Length * (_device.sampleRate / 44100f));
-        _clip = AudioClip.Create("Voice", length, 1, _device.sampleRate, false);
-        _clip.SetData(_data, _position = 0);
+        var data = new float[_position];
+        Array.Copy(_data, data, _position);
+        _data = data;
     }
 }

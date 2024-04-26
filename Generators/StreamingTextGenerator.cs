@@ -44,7 +44,6 @@ public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
 
     private string DispatchGeneratedText(string message)
     {
-        messages.Add(new Message(message, Roles.Assistant));
         OnStreamEnded?.Invoke(message);
         return message;
     }
