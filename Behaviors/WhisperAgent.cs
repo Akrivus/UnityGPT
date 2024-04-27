@@ -16,7 +16,7 @@ public class WhisperAgent : AbstractAgent
     [SerializeField]
     private string buzzwords;
     [SerializeField]
-    private int maxTokens = 1024;
+    private int maxTokens = 256;
     [SerializeField, Range(0.0f, 1.0f)]
     private float temperature = 0.5f;
     [SerializeField]
@@ -29,7 +29,7 @@ public class WhisperAgent : AbstractAgent
     {
         Whisper = new WhisperTextGenerator(recorder, temperature, prompt);
         ContextGenerator = new TextGenerator(prompt, model, maxTokens, temperature);
-        SetNewContext(context);
+        GetNewContext(context);
     }
 
     public override IEnumerator RespondTo(string content, Action<string> callback)
@@ -48,7 +48,13 @@ public class WhisperAgent : AbstractAgent
         Whisper.AddMessage(text);
     }
 
-    public IPromise<string> SetNewContext(string content)
+    public IPromise<string> GetNewContext(string content)
         => ContextGenerator.RespondTo(content)
-        .Then(context => this.context = string.Format("{0} {1}", context, buzzwords));
+        .Then(SetNewContext);
+
+    private string SetNewContext(string context)
+    {
+        Debug.Log(string.Format("==== CHEAT ====\n{0}\n===============", context));
+        return this.context = string.Format("{0} {1}", context, buzzwords);
+    }
 }
