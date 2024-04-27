@@ -1,5 +1,4 @@
-﻿using RSG;
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 
@@ -62,6 +61,7 @@ public class SpeechAgent : AbstractAgent
 
     public override IEnumerator RespondTo(string content, Action<string> callback)
     {
+        content = string.Format("{0}\nNow respond as {1}:", content, name);
         yield return new WaitUntil(() => speaker.IsReady);
         yield return speaker.RespondTo(content).Then(callback);
         yield return speaker.PlaySpeech(source);

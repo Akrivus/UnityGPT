@@ -36,7 +36,6 @@ public class WhisperAgent : AbstractAgent
     {
         yield return new WaitUntil(() => IsReady);
         IsReady = false;
-        Debug.Log(context);
         yield return Whisper.RespondTo(context)
             .Then(SetReady + callback);
         yield return new WaitUntil(() => IsReady);
