@@ -69,7 +69,9 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
             yield return new WaitUntil(fragment.IsReady);
             IsGeneratingSpeech = true;
             OnSpeechPlaying?.Invoke(fragment.Text);
-            yield return new WaitForSeconds(fragment.Play(source, pitch));
+            var delay = wordMapping.GetStopCodeDelay(fragment.Text);
+            var seconds = fragment.Play(source, pitch);
+            yield return new WaitForSeconds(seconds);
             IsGeneratingSpeech = false;
         }
         if (IsGeneratingText)
@@ -134,8 +136,11 @@ public class SpeechFragment
     public float Play(AudioSource source, float pitch)
     {
         source.pitch = pitch;
-        source.PlayOneShot(Clip);
-        return Clip.length * pitch;
+        source.clip = Clip;
+        source.Play();
+        var seconds = Clip.length;
+        seconds *= pitch;
+        return seconds;
     }
 
     public void Generate(IPromise<AudioClip> getClip)

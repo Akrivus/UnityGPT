@@ -8,7 +8,13 @@ public class WordMapping : ScriptableObject
 {
     [Tooltip("List of stop codes for generating speech fragments")]
     [SerializeField]
-    private string[] stopCodes = new string[] { ".", "?", "!", "\n" };
+    private List<StopCode> stopCodes = new List<StopCode>()
+    {
+        new StopCode { Code = ".",  Delay = 0.5f },
+        new StopCode { Code = "?" },
+        new StopCode { Code = "!" },
+        new StopCode { Code = "\n", Delay = 2.0f },
+    };
 
     [Tooltip("List of special words and their pronounciations")]
     [SerializeField]
@@ -24,9 +30,17 @@ public class WordMapping : ScriptableObject
     public bool MatchStopCode(string token)
     {
         foreach (var code in stopCodes)
-            if (token.Contains(code))
+            if (token.Contains(code.Code))
                 return true;
         return false;
+    }
+
+    public float GetStopCodeDelay(string text)
+    {
+        foreach (var code in stopCodes)
+            if (text.EndsWith(code.Code))
+                return code.Delay;
+        return 0.0f;
     }
 }
 
@@ -35,4 +49,11 @@ public class Mapping
 {
     public string Word;
     public string Phonetic;
+}
+
+[Serializable]
+public class StopCode
+{
+    public string Code;
+    public float Delay = 1.0f;
 }

@@ -49,7 +49,6 @@ public class VoiceRecorder : MonoBehaviour
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
 
-
     public int Frequency
     {
         get

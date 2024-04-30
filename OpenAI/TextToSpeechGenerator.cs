@@ -30,7 +30,7 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
     {
         var samples = new float[data.Length / 4];
         for (int i = 0; i < samples.Length; i++)
-            samples[i] = (float)(BitConverter.ToInt32(data, i * 4)) / int.MaxValue;
+            if (i > 44) samples[i] = (float)(BitConverter.ToInt32(data, i * 4)) / int.MaxValue;
         var clip = AudioClip.Create("Speech", samples.Length, 1, 12000, false);
         clip.SetData(samples, 0);
         OnSpeechGenerated?.Invoke(clip);
