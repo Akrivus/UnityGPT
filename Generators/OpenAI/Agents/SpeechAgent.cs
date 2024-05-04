@@ -23,10 +23,20 @@ public class SpeechAgent : AbstractAgent
 
     public override bool IsReady => speaker.IsReady;
 
+    public GenerateTextToSpeech.Voices Voice
+    {
+        get => speaker.Voice;
+        set => speaker.Voice = value;
+    }
+
     public string Prompt
     {
-        get => textGenerator.Context;
-        set => textGenerator.Context = value;
+        get => textGenerator.Prompt;
+        set
+        {
+            textGenerator.Prompt = value;
+            textGenerator.ResetContext();
+        }
     }
 
     [Header("Text")]
@@ -59,11 +69,11 @@ public class SpeechAgent : AbstractAgent
         speaker = new SpeechGenerator(textGenerator, wordMapping, TextToSpeechModel.TTS_1, voice, pitch);
     }
 
-    public override IEnumerator RespondTo(string content, Action<string> callback)
+    public override IEnumerator RespondTo(string message, Action<string> callback)
     {
-        content = string.Format("{0}\nNow respond as {1}:", content, name);
+        message = string.Format("{0}\nNow respond as {1}:", message, name);
         yield return new WaitUntil(() => speaker.IsReady);
-        yield return speaker.RespondTo(content).Then(callback);
+        yield return speaker.RespondTo(message).Then(callback);
         yield return speaker.PlaySpeech(source);
         yield return new WaitUntil(() => speaker.IsReady);
     }

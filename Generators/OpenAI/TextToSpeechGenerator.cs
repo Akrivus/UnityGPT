@@ -11,7 +11,7 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
     public event Action<AudioClip> OnSpeechGenerated;
 
     public TextToSpeechModel Model { get; protected set; } = TextToSpeechModel.TTS_1;
-    public Voices Voice { get; protected set; } = Voices.Echo;
+    public Voices Voice { get; set; } = Voices.Echo;
 
     public TextToSpeechGenerator(TextToSpeechModel model, Voices voice)
     {

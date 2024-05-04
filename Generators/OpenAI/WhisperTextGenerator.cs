@@ -21,7 +21,7 @@ public class WhisperTextGenerator : ITextGenerator
 
     public List<string> Messages => messages;
 
-    public string Context
+    public string Prompt
     {
         get => messages[messages.Count - 1];
         set => AddContext(value);
@@ -68,7 +68,7 @@ public class WhisperTextGenerator : ITextGenerator
         OnSpeechReceived?.Invoke(data);
 
         var bytes = AudioClipExtensions.ToByteArray(data, recorder.Channels, recorder.Frequency);
-        var body = new GenerateSpeechToText(Context, temperature, bytes);
+        var body = new GenerateSpeechToText(Prompt, temperature, bytes);
 
         return RestClient.Post(new RequestHelper()
         {

@@ -14,7 +14,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
     public int MaxTokens { get; set; } = 1024;
     public float Temperature { get; set; } = 0.5F;
     public string ToolChoice { get; set; } = null;
-    public string Context { get; set; }
+    public string Prompt { get; set; }
 
     protected List<Message> messages = new List<Message>();
     protected Dictionary<string, IToolCall> toolCalls = new Dictionary<string, IToolCall>();
@@ -30,7 +30,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
 
     public TextGenerator(string prompt, TextModel model, int maxTokens = 1024, float temperature = 0.5f) : this(model, maxTokens, temperature)
     {
-        Context = prompt;
+        Prompt = prompt;
         ResetContext();
     }
 
@@ -54,7 +54,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
             context[i] = messages[i].Content;
         OnContextReset?.Invoke(context);
         messages.Clear();
-        messages.Add(new Message(Context, Roles.System));
+        messages.Add(new Message(Prompt, Roles.System));
     }
 
     public void AddContext(string message)

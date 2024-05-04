@@ -28,10 +28,10 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     public bool IsReady { get; private set; } = true;
     public bool IsGeneratingSpeech { get; private set; }
     public bool IsGeneratingText { get; private set; }
-    public string Context
+    public string Prompt
     {
-        get => textGenerator.Context;
-        set => textGenerator.Context = value;
+        get => textGenerator.Prompt;
+        set => textGenerator.Prompt = value;
     }
 
     private IStreamingTextGenerator textGenerator;
@@ -102,24 +102,9 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         return text;
     }
 
-    public IPromise<string> SendContext()
-    {
-        return textGenerator.SendContext();
-    }
-
     public void ResetContext()
     {
         textGenerator.ResetContext();
-    }
-
-    public void AddContext(string context)
-    {
-        textGenerator.AddContext(context);
-    }
-
-    public void AddMessage(string message)
-    {
-        textGenerator.AddMessage(message);
     }
 }
 
