@@ -28,6 +28,8 @@ public class VoiceRecorder : MonoBehaviour
     [SerializeField]
     private float maxPauseLength = 2f;
     [SerializeField]
+    private float calibrationTime = 0.5f;
+    [SerializeField]
     private float exponent = 10f;
 
     private bool hasVoiceBeenDetected;
@@ -39,7 +41,7 @@ public class VoiceRecorder : MonoBehaviour
 
     public Promise<float[]> Recording { get; private set; }
     public Promise<float> Calibrating { get; private set; }
-    public float MaxPauseLength => maxPauseLength;
+    public float MaxPauseLength => IsCalibrating ? calibrationTime : maxPauseLength;
 
     public float NoiseFloor { get; private set; }
     public float NoiseLevel { get; private set; }
@@ -80,7 +82,7 @@ public class VoiceRecorder : MonoBehaviour
     {
         if (!IsRecording) return;
         SecondsOfSilence = (float)_stopwatch.Elapsed.TotalSeconds;
-        if (SecondsOfSilence > maxPauseLength &&
+        if (SecondsOfSilence > MaxPauseLength &&
            (IsCalibrating || hasVoiceBeenDetected))
             StopRecord();
 #if !UNITY_WEBGL
@@ -93,7 +95,6 @@ public class VoiceRecorder : MonoBehaviour
     {
         hasVoiceBeenDetected = false;
         IsRecording = true;
-        _stopwatch.Restart();
 #if UNITY_WEBGL
         AllocateClip();
         microphone.Begin();
@@ -107,7 +108,7 @@ public class VoiceRecorder : MonoBehaviour
         if (IsCalibrating) return null;
         IsCalibrating = true;
         Calibrating = new Promise<float>();
-        NoiseFloor = 0f;
+        NoiseFloor = 0.002f;
 
         PrepareMicrophone();
 
@@ -131,6 +132,8 @@ public class VoiceRecorder : MonoBehaviour
     {
         if (!IsRecording) return;
         IsRecording = false;
+        _stopwatch.Stop();
+        _stopwatch.Reset();
 #if UNITY_WEBGL
         microphone.End();
 #endif
@@ -140,6 +143,8 @@ public class VoiceRecorder : MonoBehaviour
     public void OnDataReceived(float[] data)
     {
         if (!IsRecording) return;
+        if (!_stopwatch.IsRunning)
+            _stopwatch.Start();
 
         var detected = DetectVoice(data);
         if (IsCalibrating) return;

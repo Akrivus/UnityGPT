@@ -1,20 +1,19 @@
-﻿using Proyecto26;
-using RSG;
+﻿using RSG;
 using System;
 using UnityEngine;
-using static GenerateTextToSpeech;
 
 public class TextToSpeechGenerator : ITextToSpeechGenerator
 {
-    private const string URI = "https://api.openai.com/v1/audio/speech";
-
     public event Action<AudioClip> OnSpeechGenerated;
 
-    public TextToSpeechModel Model { get; protected set; } = TextToSpeechModel.TTS_1;
-    public Voices Voice { get; set; } = Voices.Echo;
+    public string Model { get; protected set; } = "tts-1";
+    public string Voice { get; set; } = "echo";
 
-    public TextToSpeechGenerator(TextToSpeechModel model, Voices voice)
+    protected PhrenProxyClient api;
+
+    public TextToSpeechGenerator(PhrenProxyClient api, string model, string voice)
     {
+        this.api = api;
         Model = model;
         Voice = voice;
     }
@@ -22,7 +21,7 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
     public IPromise<AudioClip> Generate(string text)
     {
         var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, Voice, Model));
-        return RestClient.Post(URI, body)
+        return api.Post(api.Uri_Speech, body, "application/json")
             .Then((helper) => Generate(helper.Data));
     }
 

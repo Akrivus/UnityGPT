@@ -1,7 +1,7 @@
 ﻿using Proyecto26;
 using RSG;
 using System;
-using static Message;
+using System.Collections.Generic;
 
 public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
 {
@@ -10,7 +10,8 @@ public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
 
     protected string stream;
 
-    public StreamingTextGenerator(string prompt, TextModel model, int maxTokens = 1024, float temperature = 0.5f) : base(prompt, model, maxTokens, temperature) { }
+    public StreamingTextGenerator(PhrenProxyClient client, List<Message> messages, string model, int maxTokens = 1024, float temperature = 0.5f, string interstitialPrompt = "{0}")
+        : base(client, messages, model, maxTokens, temperature, interstitialPrompt) { }
 
     public IPromise<string> RespondTo(string content, Action<string> tokenCallback)
     {
@@ -27,9 +28,9 @@ public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
         stream = string.Empty;
 
         var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, true, ToolChoice);
-        return RestClient.Post(new RequestHelper
+        return api.Post(new RequestHelper
         {
-            Uri = URI,
+            Uri = api.Uri_Chat,
             BodyString = RestClientExtensions.Serialize(body),
             DownloadHandler = sse
         }).Then(_ => DispatchGeneratedText(stream));
@@ -44,6 +45,7 @@ public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
 
     private string DispatchGeneratedText(string message)
     {
+        AddMessage(message);
         OnStreamEnded?.Invoke(message);
         return message;
     }

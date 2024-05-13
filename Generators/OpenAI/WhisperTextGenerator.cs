@@ -6,39 +6,44 @@ using UnityEngine;
 
 public class WhisperTextGenerator : ITextGenerator
 {
-    private const string URI = "https://api.openai.com/v1/audio/transcriptions";
-
     public event Func<string, IPromise<string>> OnTextGenerated;
     public event Action<string[]> OnContextReset;
-
     public event Action<float[]> OnSpeechReceived;
 
+    public List<Message> Prompt
+    {
+        get => promptGenerator.Prompt;
+        set => promptGenerator.Prompt = value;
+    }
+
     private VoiceRecorder recorder;
+    private string prompt;
+    private string model;
+    private int maxTokens;
     private float temperature = 0.5F;
-    private string context;
 
-    private List<string> messages = new List<string>();
+    private TextGenerator promptGenerator;
+    private bool promptGenerated = false;
 
-    public List<string> Messages => messages;
+    private PhrenProxyClient api;
 
-    public string Prompt
+    public WhisperTextGenerator(PhrenProxyClient api, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature)
     {
-        get => messages[messages.Count - 1];
-        set => AddContext(value);
-    }
-
-    public WhisperTextGenerator(VoiceRecorder recorder, float temperature, string context = "")
-    {
+        this.api = api;
         this.recorder = recorder;
+        this.prompt = prompt;
+        this.model = model;
+        this.maxTokens = maxTokens;
         this.temperature = temperature;
-        this.context = context;
-        AddContext(context);
+        SetPromptGenerator(prompt);
     }
 
-    public IPromise<string> RespondTo(string context)
+    public IPromise<string> RespondTo(string message)
     {
-        AddContext(context);
-        return SendContext();
+        if (promptGenerated) return SendContext();
+        message = string.IsNullOrEmpty(message) ? prompt : message;
+        return SetContext(message)
+            .Then(SendContext);
     }
 
     public IPromise<string> SendContext()
@@ -48,19 +53,25 @@ public class WhisperTextGenerator : ITextGenerator
 
     public void ResetContext()
     {
-        OnContextReset?.Invoke(messages.ToArray());
-        messages.Clear();
-        messages.Add(context);
+        OnContextReset?.Invoke(new string[0]);
     }
 
-    public void AddContext(string context)
+    public IPromise SetContext(string message)
     {
-        messages.Add(context);
+        return promptGenerator.RespondTo(message)
+            .Then(SetPrompt);
     }
 
-    public void AddMessage(string message)
+    private void SetPrompt(string prompt)
     {
-        messages.Add(message);
+        Debug.Log("Cheat Prompt:\n" + prompt);
+        this.prompt = prompt;
+        promptGenerated = true;
+    }
+
+    private void SetPromptGenerator(string prompt)
+    {
+        promptGenerator = new TextGenerator(api, prompt, model, maxTokens, temperature);
     }
 
     private IPromise<string> UploadAudioAndGenerateText(float[] data)
@@ -68,11 +79,11 @@ public class WhisperTextGenerator : ITextGenerator
         OnSpeechReceived?.Invoke(data);
 
         var bytes = AudioClipExtensions.ToByteArray(data, recorder.Channels, recorder.Frequency);
-        var body = new GenerateSpeechToText(Prompt, temperature, bytes);
+        var body = new GenerateSpeechToText(prompt, temperature, bytes);
 
-        return RestClient.Post(new RequestHelper()
+        return api.Post(new RequestHelper()
         {
-            Uri = URI,
+            Uri = api.Uri_Transcriptions,
             FormData = body.FormData
         })
             .Then((response) => RestClientExtensions.Deserialize<Transcription>(response.Text))
@@ -81,6 +92,7 @@ public class WhisperTextGenerator : ITextGenerator
 
     private IPromise<string> DispatchTranscription(string text)
     {
+        promptGenerated = false;
         return OnTextGenerated?.Invoke(text)
             ?? Promise<string>.Resolved(text);
     }

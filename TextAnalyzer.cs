@@ -3,15 +3,14 @@ using System;
 
 public class TextAnalyzer
 {
-    static readonly string Prompt = "Report the sentiment of the following text.\nText:";
+    private static readonly string Prompt = "Report the sentiment of the following text.\nText:";
 
-    Sentiment sentiment = new Sentiment();
-    TextGenerator generator;
+    private Sentiment sentiment = new Sentiment();
+    private TextGenerator generator;
 
-    public TextAnalyzer()
+    public TextAnalyzer(PhrenProxyClient client)
     {
-        generator = new TextGenerator(Prompt,
-            TextModel.GPT_3_Turbo, 256, 0.1f);
+        generator = new TextGenerator(client, Prompt, "gpt-3.5-turbo", 256, 0.1f);
         generator.AddTool(sentiment);
     }
 

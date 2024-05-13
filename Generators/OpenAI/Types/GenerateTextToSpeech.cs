@@ -1,32 +1,15 @@
 ﻿
 public class GenerateTextToSpeech
 {
-    public TextToSpeechModel Model { get; set; }
+    public string Model { get; set; }
     public string Input { get; set; }
-    public Voices Voice { get; set; } = Voices.Alloy;
-    public Formats ResponseFormat { get; set; } = Formats.Wav;
+    public string Voice { get; set; } = "echo";
+    public string ResponseFormat { get; set; } = "wav";
 
-    public GenerateTextToSpeech(string input, Voices voice, TextToSpeechModel model)
+    public GenerateTextToSpeech(string input, string voice, string model)
     {
         Input = input;
         Voice = voice;
         Model = model;
-    }
-
-    public enum Voices
-    {
-        Alloy,
-        Echo,
-        Fable,
-        Onyx,
-        Nova,
-        Shimmer
-    }
-
-    public enum Formats
-    {
-        Wav,
-        Mp3,
-        Ogg
     }
 }

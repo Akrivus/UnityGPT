@@ -2,12 +2,17 @@
 
 public class TextEmbedder : IEmbedding
 {
-    const string URI = "https://api.openai.com/v1/embedding";
+    private PhrenProxyClient api;
+
+    public TextEmbedder(PhrenProxyClient client)
+    {
+        api = client;
+    }
 
     public IPromise<float[]> FetchEmbeddingFor(string text)
     {
         var body = new GenerateEmbedding(text);
-        return RestClientExtensions.Post<GeneratedEmbedding>(URI, body)
+        return api.Post<GeneratedEmbedding>(api.Uri_Embeddings, body)
             .Then(response => response.Embedding);
     }
 }

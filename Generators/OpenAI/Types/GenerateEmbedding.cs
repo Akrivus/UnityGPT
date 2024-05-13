@@ -1,7 +1,7 @@
 ﻿
 public class GenerateEmbedding
 {
-    public EmbeddingModel Model { get; set; } = EmbeddingModel.TextEmbedding3Small;
+    public string Model { get; set; }
     public string Input { get; set; }
     public int Dimensions { get; set; } = 1536;
 
@@ -15,7 +15,7 @@ public class GenerateEmbedding
 public class GeneratedEmbedding
 {
     public string Object { get; set; } = "list";
-    public EmbeddingModel Model { get; set; } = EmbeddingModel.TextEmbedding3Small;
+    public string Model { get; set; }
     public Embeddings[] Data { get; set; }
     public Usage Usage { get; set; }
 

@@ -1,41 +1,43 @@
 ﻿using RSG;
 using System;
 using System.Collections.Generic;
-using static Message;
 
 public class TextGenerator : ITextGenerator, IToolCaller
 {
-    protected const string URI = "https://api.openai.com/v1/chat/completions";
-
     public event Func<string, IPromise<string>> OnTextGenerated;
     public event Action<string[]> OnContextReset;
 
-    public TextModel Model { get; set; } = TextModel.GPT_3_Turbo;
+    public string Model { get; set; } = "gpt-3.5-turbo";
     public int MaxTokens { get; set; } = 1024;
     public float Temperature { get; set; } = 0.5F;
     public string ToolChoice { get; set; } = null;
-    public string Prompt { get; set; }
+    public string InterstitialPrompt { get; set; } = "{0}";
+    public List<Message> Prompt { get; set; }
 
     protected List<Message> messages = new List<Message>();
     protected Dictionary<string, IToolCall> toolCalls = new Dictionary<string, IToolCall>();
 
     protected List<Tool> tools => GetToolList();
 
-    public TextGenerator(TextModel model, int maxTokens = 1024, float temperature = 0.5f)
+    protected PhrenProxyClient api;
+
+    public TextGenerator(PhrenProxyClient api, List<Message> messages, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
     {
+        this.api = api;
+        Prompt = messages;
         Model = model;
         MaxTokens = maxTokens;
         Temperature = temperature;
-    }
-
-    public TextGenerator(string prompt, TextModel model, int maxTokens = 1024, float temperature = 0.5f) : this(model, maxTokens, temperature)
-    {
-        Prompt = prompt;
+        InterstitialPrompt = interstitialPrompt;
         ResetContext();
     }
 
+    public TextGenerator(PhrenProxyClient client, string prompt, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
+        : this(client, new List<Message> { new Message(prompt, Roles.System) }, model, maxTokens, temperature, interstitialPrompt) { }
+
     public IPromise<string> RespondTo(string content)
     {
+        content = string.Format(InterstitialPrompt, content);
         AddContext(content);
         return SendContext();
     }
@@ -43,7 +45,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
     public IPromise<string> SendContext()
     {
         var body = new GenerateText(Model, MaxTokens, Temperature, messages, tools, false, ToolChoice);
-        return RestClientExtensions.Post<GeneratedText<Choice>>(URI, body)
+        return api.Post<GeneratedText<Choice>>(api.Uri_Chat, body)
             .Then(text => DispatchGeneratedText(text));
     }
 
@@ -54,7 +56,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
             context[i] = messages[i].Content;
         OnContextReset?.Invoke(context);
         messages.Clear();
-        messages.Add(new Message(Prompt, Roles.System));
+        messages.AddRange(Prompt);
     }
 
     public void AddContext(string message)

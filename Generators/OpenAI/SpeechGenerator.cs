@@ -28,7 +28,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     public bool IsReady { get; private set; } = true;
     public bool IsGeneratingSpeech { get; private set; }
     public bool IsGeneratingText { get; private set; }
-    public string Prompt
+    public List<Message> Prompt
     {
         get => textGenerator.Prompt;
         set => textGenerator.Prompt = value;
@@ -41,7 +41,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private List<SpeechFragment> fragments = new List<SpeechFragment>();
     private SpeechFragment fragment = new SpeechFragment();
 
-    public SpeechGenerator(IStreamingTextGenerator textGenerator, WordMapping wordMapping, TextToSpeechModel textToSpeechModel, GenerateTextToSpeech.Voices voice, float pitch = 1.0f) : base(textToSpeechModel, voice)
+    public SpeechGenerator(PhrenProxyClient client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, float pitch = 1.0f) : base(client, "tts-1", voice)
     {
         this.textGenerator = textGenerator;
         this.wordMapping = wordMapping;

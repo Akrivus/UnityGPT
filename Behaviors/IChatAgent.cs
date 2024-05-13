@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections;
 
-public interface IChatBehavior
+public interface IChatAgent
 {
-    public bool IsReady { get; set; }
+    public bool IsReady { get; }
 
     public IEnumerator RespondTo(string content, Action<string> callback);
 }

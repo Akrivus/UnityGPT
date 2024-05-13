@@ -1,9 +1,10 @@
 ﻿using RSG;
 using System;
+using System.Collections.Generic;
 
 public interface ITextGenerator
 {
-    public string Prompt { get; set; }
+    public List<Message> Prompt { get; set; }
     public IPromise<string> RespondTo(string message);
     public void ResetContext();
 

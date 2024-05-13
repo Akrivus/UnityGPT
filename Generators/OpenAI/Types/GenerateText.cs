@@ -4,7 +4,7 @@ using static Message;
 
 public class GenerateText
 {
-    public TextModel Model { get; set; }
+    public string Model { get; set; }
     public int MaxTokens { get; set; }
     public float Temperature { get; set; }
     public List<Message> Messages { get; set; }
@@ -12,7 +12,7 @@ public class GenerateText
     public ToolCallReference ToolChoice { get; set; }
     public bool Stream { get; set; } = false;
 
-    public GenerateText(TextModel model, int maxtokens, float temperature, List<Message> messages, List<Tool> tools = null, bool stream = false, string toolChoice = null)
+    public GenerateText(string model, int maxtokens, float temperature, List<Message> messages, List<Tool> tools = null, bool stream = false, string toolChoice = null)
     {
         Model = model;
         MaxTokens = maxtokens;
@@ -63,16 +63,6 @@ public class Message
     }
 
     public Message() { }
-
-    public enum Roles
-    {
-        User, Assistant, System, Function, Tool
-    }
-
-    public enum FinishReasons
-    {
-        Stop, Length, FunctionCall, ToolCalls, ContentFilter, Null
-    }
 }
 
 public class ToolReference
@@ -138,4 +128,14 @@ public class Choice
 
         public bool ShouldSerializeMessage() => false;
     }
+}
+
+public enum Roles
+{
+    User, Assistant, System, Function, Tool
+}
+
+public enum FinishReasons
+{
+    Stop, Length, FunctionCall, ToolCalls, ContentFilter, Null
 }
