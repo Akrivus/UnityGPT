@@ -38,6 +38,8 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     [Header("Chat")]
     [SerializeField]
     protected PhrenProxyClient client;
+    [SerializeField]
+    protected Roles role = Roles.System;
 
     [Header("Speech")]
     [SerializeField, Range(0.8f, 1.2f)]
@@ -67,7 +69,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         text = new StreamingTextGenerator(client, session.Messages, session.Model, session.MaxTokens, session.Temperature, session.InterstitialPrompt);
-        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, pitch);
+        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, pitch, role);
         DispatchSuccessfulLink(session);
     }
 

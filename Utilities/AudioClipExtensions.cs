@@ -5,11 +5,12 @@ using UnityEngine;
 public static class AudioClipExtensions
 {
     private const int BITS_PER_SAMPLE = 16;
+    private const int BYTES_IN_FLOATS = 2;
 
     public static byte[] ToByteArray(float[] data, int channels, int frequency)
     {
         var samples = data.Length / channels;
-        var bytes = new byte[44 + samples * channels * 2];
+        var bytes = new byte[44 + samples * BYTES_IN_FLOATS];
         var offset = WriteHeader(samples, channels, frequency, bytes);
 
         GetDataByteArray(data, channels, samples, bytes, offset);
@@ -28,7 +29,7 @@ public static class AudioClipExtensions
         var frequency = clip.frequency;
         var samples = clip.samples;
 
-        var bytes = new byte[44 + samples * channels * 2];
+        var bytes = new byte[44 + samples * channels * BYTES_IN_FLOATS];
         var offset = WriteHeader(samples, channels, frequency, bytes);
 
         GetDataByteArray(data, channels, samples, bytes, offset);
@@ -68,7 +69,7 @@ public static class AudioClipExtensions
             throw new ArgumentException("Buffer is too small for this AudioClip.");
         for (int i = 0; i < data.Length; ++i)
             BitConverter.GetBytes((short)(data[i] * short.MaxValue))
-                .CopyTo(bytes, offset + i * 2);
+                .CopyTo(bytes, offset + i * BYTES_IN_FLOATS);
     }
 
     private static int WriteHeader(int samples, int channels, int frequency, byte[] bytes, int offset = 0)

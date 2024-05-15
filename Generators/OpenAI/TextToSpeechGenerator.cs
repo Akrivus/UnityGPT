@@ -11,16 +11,19 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
 
     protected PhrenProxyClient api;
 
-    public TextToSpeechGenerator(PhrenProxyClient api, string model, string voice)
+    private Roles role = Roles.System;
+
+    public TextToSpeechGenerator(PhrenProxyClient api, string model, string voice, Roles role = Roles.System)
     {
         this.api = api;
         Model = model;
         Voice = voice;
+        this.role = role;
     }
 
     public IPromise<AudioClip> Generate(string text)
     {
-        var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, Voice, Model));
+        var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, Voice, Model, role));
         return api.Post(api.Uri_Speech, body, "application/json")
             .Then((helper) => Generate(helper.Data));
     }

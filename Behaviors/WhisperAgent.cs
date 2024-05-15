@@ -38,7 +38,7 @@ public class WhisperAgent : SpeechAgent
 
     public override void Link(ProxySession session)
     {
-        whisper = new WhisperTextGenerator(client, recorder, session.Description, model, maxTokens, temperature);
+        whisper = new WhisperTextGenerator(client, recorder, session.Description, model, maxTokens, temperature, role);
         DispatchSuccessfulLink(session);
     }
 

@@ -41,7 +41,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private List<SpeechFragment> fragments = new List<SpeechFragment>();
     private SpeechFragment fragment = new SpeechFragment();
 
-    public SpeechGenerator(PhrenProxyClient client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, float pitch = 1.0f) : base(client, "tts-1", voice)
+    public SpeechGenerator(PhrenProxyClient client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, float pitch = 1.0f, Roles role = Roles.System) : base(client, "tts-1", voice, role)
     {
         this.textGenerator = textGenerator;
         this.wordMapping = wordMapping;

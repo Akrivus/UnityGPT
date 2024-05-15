@@ -27,7 +27,9 @@ public class WhisperTextGenerator : ITextGenerator
 
     private PhrenProxyClient api;
 
-    public WhisperTextGenerator(PhrenProxyClient api, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature)
+    private Roles role = Roles.System;
+
+    public WhisperTextGenerator(PhrenProxyClient api, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature, Roles role = Roles.System)
     {
         this.api = api;
         this.recorder = recorder;
@@ -35,6 +37,7 @@ public class WhisperTextGenerator : ITextGenerator
         this.model = model;
         this.maxTokens = maxTokens;
         this.temperature = temperature;
+        this.role = role;
         SetPromptGenerator(prompt);
     }
 
@@ -79,7 +82,7 @@ public class WhisperTextGenerator : ITextGenerator
         OnSpeechReceived?.Invoke(data);
 
         var bytes = AudioClipExtensions.ToByteArray(data, recorder.Channels, recorder.Frequency);
-        var body = new GenerateSpeechToText(prompt, temperature, bytes);
+        var body = new GenerateSpeechToText(prompt, temperature, bytes, role);
 
         return api.Post(new RequestHelper()
         {
