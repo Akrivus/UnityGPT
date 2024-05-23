@@ -7,8 +7,8 @@ using UnityEngine.Networking;
 
 public class PhrenProxyClient : MonoBehaviour
 {
-    public static string DefaultUri => "https://api.openai.com/v1/";
-    public static string DefaultToken => Environment.GetEnvironmentVariable("OPENAI_ACCESS_TOKEN");
+    public string DefaultUri = "https://api.openai.com/v1/";
+    public string DefaultToken = Environment.GetEnvironmentVariable("OPENAI_ACCESS_TOKEN");
 
     public event Action<ProxySession> OnSuccessfulLink;
 
@@ -19,7 +19,7 @@ public class PhrenProxyClient : MonoBehaviour
     public string Uri_Login => endpoint + "api";
 
     [SerializeField]
-    private string endpoint = DefaultUri;
+    private string endpoint;
     [SerializeField]
     private string promptId;
     [SerializeField]
@@ -27,16 +27,18 @@ public class PhrenProxyClient : MonoBehaviour
     [SerializeField]
     private bool isAutoLogin = false;
     [SerializeField]
-    private bool versionIsPrompt = false;
+    private bool isAutoPrompt = false;
 
     private string accessToken;
 
     private void Awake()
     {
-        if (isAutoLogin)
-            OnSuccessfulLink?.Invoke(defaults.Build());
-        if (versionIsPrompt)
-            promptId = Application.version;
+        if (isAutoPrompt)
+        {
+            var url = Application.absoluteURL;
+            var parts = url.Split('/');
+            promptId = parts[4];
+        }
     }
 
     public IPromise<ProxySession> Login<T>(T context) where T : IProxyContext
@@ -49,7 +51,18 @@ public class PhrenProxyClient : MonoBehaviour
         });
 
     public IPromise<ProxySession> Login()
-        => Login(new ProxyContext(promptId));
+        => isAutoLogin ? AutoLogin()
+        : Login(new ProxyContext(promptId));
+
+    public IPromise<ProxySession> AutoLogin()
+    {
+        accessToken = DefaultToken;
+        endpoint = DefaultUri;
+
+        var session = defaults.Build(DefaultUri, accessToken);
+        OnSuccessfulLink?.Invoke(session);
+        return Promise<ProxySession>.Resolved(session);
+    }
 
     public RequestHelper SetHeaders(RequestHelper helper, string contentType = null)
     {
@@ -122,12 +135,12 @@ public class PhrenProxyClient : MonoBehaviour
             
         public List<Message> Messages => new List<Message> { new Message(Prompt, Roles.System) };
 
-        public ProxySession Build()
+        public ProxySession Build(string uri, string token)
         {
             return new ProxySession
             {
-                Href = DefaultUri,
-                AccessToken = DefaultToken,
+                Href = uri,
+                AccessToken = token,
                 Name = Name,
                 Description = Description,
                 Metadata = Metadata,
