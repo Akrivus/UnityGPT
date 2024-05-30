@@ -71,7 +71,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         text = new StreamingTextGenerator(client, session.Messages, session.Model, session.MaxTokens, session.Temperature, session.InterstitialPrompt);
-        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, role, session.InterstitialPrompt);
+        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, role);
 
         DispatchSuccessfulLink(session);
     }
