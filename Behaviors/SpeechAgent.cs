@@ -48,6 +48,8 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     protected AudioSource source;
     [SerializeField]
     protected WordMapping wordMapping;
+    [SerializeField]
+    protected string interstitialPrompt = "{0}";
 
     public virtual bool IsReady => speaker.IsReady;
 
@@ -58,6 +60,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
 
     public virtual IEnumerator RespondTo(string message, Action<string> callback)
     {
+        message = string.Format(interstitialPrompt, message, name);
         yield return new WaitUntil(() => speaker.IsReady);
         yield return speaker.RespondTo(message).Then(callback);
         yield return speaker.PlaySpeech(source);
@@ -68,7 +71,8 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         text = new StreamingTextGenerator(client, session.Messages, session.Model, session.MaxTokens, session.Temperature, session.InterstitialPrompt);
-        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, role);
+        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, role, session.InterstitialPrompt);
+
         DispatchSuccessfulLink(session);
     }
 

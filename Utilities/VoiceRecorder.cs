@@ -3,7 +3,7 @@ using System;
 using System.Diagnostics;
 using UnityEngine;
 
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
 using System.Collections.Generic;
 using uMicrophoneWebGL;
 #endif
@@ -16,7 +16,7 @@ public class VoiceRecorder : MonoBehaviour
     public event AudioClipHandler OnRecordStop;
     public event ReadyHandler OnReady;
 
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
     [SerializeField]
     private MicrophoneWebGL microphone;
 #else
@@ -25,11 +25,15 @@ public class VoiceRecorder : MonoBehaviour
 
     [Header("Voice Detection")]
     [SerializeField]
+    private int frameSize = 512;
+    [SerializeField]
     private float maxPauseLength = 2f;
     [SerializeField]
     private float calibrationTime = 0.5f;
     [SerializeField]
-    private float exponent = 10f;
+    private float exponent = 8f;
+    [SerializeField]
+    private float divisor = 2f;
 
     private bool hasVoiceBeenDetected;
 
@@ -42,15 +46,17 @@ public class VoiceRecorder : MonoBehaviour
     public Promise<float> Calibrating { get; private set; }
     public float MaxPauseLength => IsCalibrating ? calibrationTime : maxPauseLength;
 
-    public float NoiseFloor { get; private set; }
-    public float NoiseLevel { get; private set; }
+    public float ZeroCrossings;
+    public float AverageZeroCrossings;
+    public float NoiseFloor;
+    public float NoiseLevel;
     public float SecondsOfSilence { get; private set; }
 
     public bool IsCalibrating { get; private set; }
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
 
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
     public int Frequency => microphone.selectedDevice.sampleRate;
     public int Channels => microphone.selectedDevice.channelCount;
 #else
@@ -61,7 +67,7 @@ public class VoiceRecorder : MonoBehaviour
     private void Start()
     {
         _stopwatch.Start();
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         microphone.readyEvent.AddListener(OnMicrophoneReady);
         microphone.deviceListEvent.AddListener(SetDeviceList);
         microphone.dataEvent.AddListener(OnDataReceived);
@@ -86,7 +92,8 @@ public class VoiceRecorder : MonoBehaviour
         if (SecondsOfSilence > MaxPauseLength &&
            (IsCalibrating || hasVoiceBeenDetected))
             StopRecord();
-#if !MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
+#else
         var pos = Microphone.GetPosition(null);
         if (pos - _position < _clip.frequency) return;
         OnDataReceived(GetDataFrom(pos));
@@ -112,7 +119,7 @@ public class VoiceRecorder : MonoBehaviour
         hasVoiceBeenDetected = false;
         IsRecording = true;
         AllocateClip();
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         microphone.Begin();
 #else
         _clip = Microphone.Start(null, true, 120, Frequency);
@@ -150,7 +157,7 @@ public class VoiceRecorder : MonoBehaviour
         IsRecording = false;
         _stopwatch.Stop();
         _stopwatch.Reset();
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         microphone.End();
 #else
         Microphone.End(null);
@@ -194,15 +201,51 @@ public class VoiceRecorder : MonoBehaviour
 
     private bool DetectVoice(float[] data)
     {
-        for (var i = 0; i < data.Length; i++)
-            NoiseLevel += Mathf.Abs(data[i]);
-        NoiseLevel /= data.Length;
+        NoiseLevel = CalculateNoiseLevel(data);
+        ZeroCrossings = CalculateZeroCrossings(data, frameSize);
 
-        if (IsCalibrating && NoiseLevel > NoiseFloor)
-            NoiseFloor = NoiseLevel * exponent;
+        if (IsCalibrating)
+        {
+            if (NoiseLevel > NoiseFloor)
+                NoiseFloor = NoiseLevel * exponent;
+            AverageZeroCrossings += ZeroCrossings;
+            AverageZeroCrossings /= divisor;
+        }
         else if (IsRecording)
-            return NoiseLevel > NoiseFloor;
+            return NoiseLevel > NoiseFloor
+                && ZeroCrossings > AverageZeroCrossings;
+
         return false;
+    }
+
+    private float CalculateNoiseLevel(float[] data)
+    {
+        var sum = 0f;
+        for (var i = 0; i < data.Length; i++)
+            sum += Mathf.Abs(data[i]);
+        return sum / data.Length;
+    }
+
+    private float CalculateZeroCrossings(float[] data, int frameSize)
+    {
+        var frames = data.Length / frameSize;
+        var total = 0f;
+        for (var i = 0; i < frames; i++)
+        {
+            var frame = new float[frameSize];
+            Array.Copy(data, i * frameSize, frame, 0, frameSize);
+            total += CountZeroCrossings(frame);
+        }
+        return total / frames / frameSize;
+    }
+
+    private int CountZeroCrossings(float[] data)
+    {
+        var count = 0;
+        for (var i = 1; i < data.Length; i++)
+            if ((data[i - 1] >= 0 && data[i] < 0) || (data[i - 1] < 0 && data[i] >= 0))
+                count++;
+        return count;
     }
 
     private void AllocateClip()
@@ -214,7 +257,7 @@ public class VoiceRecorder : MonoBehaviour
     private void CreateClip()
     {
         var data = new float[_position];
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         Array.Copy(_data, data, _position);
 #else
         _clip.GetData(data, 0);

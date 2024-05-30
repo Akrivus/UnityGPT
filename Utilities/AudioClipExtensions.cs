@@ -4,8 +4,8 @@ using UnityEngine;
 
 public static class AudioClipExtensions
 {
-    private const int BITS_PER_SAMPLE = 16;
-    private const int BYTES_IN_FLOATS = 2;
+    public const int BITS_PER_SAMPLE = 16;
+    public const int BYTES_IN_FLOATS = 2;
 
     public static byte[] ToByteArray(float[] data, int channels, int frequency)
     {

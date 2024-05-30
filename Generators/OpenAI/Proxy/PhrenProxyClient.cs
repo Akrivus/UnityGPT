@@ -19,23 +19,19 @@ public class PhrenProxyClient : MonoBehaviour
     public string Uri_Login => endpoint + "api";
 
     [SerializeField]
-    private string endpoint = DefaultUri;
+    private string endpoint;
     [SerializeField]
     private string promptId;
     [SerializeField]
     private ProxySessionFactory defaults;
     [SerializeField]
     private bool isAutoLogin = false;
-    [SerializeField]
-    private bool versionIsPrompt = false;
 
     private string accessToken;
 
     private void Awake()
     {
         if (isAutoLogin) AutoLogin(defaults.Build());
-        if (versionIsPrompt)
-            promptId = Application.version;
     }
 
     public IPromise<ProxySession> Login<T>(T context) where T : IProxyContext
@@ -43,7 +39,18 @@ public class PhrenProxyClient : MonoBehaviour
         .Then((session) => Promise<ProxySession>.Resolved(AutoLogin(session)));
 
     public IPromise<ProxySession> Login()
-        => Login(new ProxyContext(promptId));
+        => isAutoLogin ? AutoLogin()
+        : Login(new ProxyContext(promptId));
+
+    public IPromise<ProxySession> AutoLogin()
+    {
+        accessToken = DefaultToken;
+        endpoint = DefaultUri;
+
+        var session = defaults.Build(DefaultUri, accessToken);
+        OnSuccessfulLink?.Invoke(session);
+        return Promise<ProxySession>.Resolved(session);
+    }
 
     public ProxySession AutoLogin(ProxySession session)
     {
@@ -123,12 +130,12 @@ public class PhrenProxyClient : MonoBehaviour
             
         public List<Message> Messages => new List<Message> { new Message(Prompt, Roles.System) };
 
-        public ProxySession Build()
+        public ProxySession Build(string uri, string token)
         {
             return new ProxySession
             {
-                Href = DefaultUri,
-                AccessToken = DefaultToken,
+                Href = uri,
+                AccessToken = token,
                 Name = Name,
                 Description = Description,
                 Metadata = Metadata,
