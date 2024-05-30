@@ -26,19 +26,12 @@ public class PhrenProxyClient : MonoBehaviour
     private ProxySessionFactory defaults;
     [SerializeField]
     private bool isAutoLogin = false;
-    [SerializeField]
-    private bool isAutoPrompt = false;
 
     private string accessToken;
 
     private void Awake()
     {
-        if (isAutoPrompt)
-        {
-            var url = Application.absoluteURL;
-            var parts = url.Split('/');
-            promptId = parts[4];
-        }
+
     }
 
     public IPromise<ProxySession> Login<T>(T context) where T : IProxyContext

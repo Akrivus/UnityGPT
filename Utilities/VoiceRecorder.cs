@@ -3,7 +3,7 @@ using System;
 using System.Diagnostics;
 using UnityEngine;
 
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
 using System.Collections.Generic;
 using uMicrophoneWebGL;
 #endif
@@ -16,7 +16,7 @@ public class VoiceRecorder : MonoBehaviour
     public event AudioClipHandler OnRecordStop;
     public event ReadyHandler OnReady;
 
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
     [SerializeField]
     private MicrophoneWebGL microphone;
 #else
@@ -56,7 +56,7 @@ public class VoiceRecorder : MonoBehaviour
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
 
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
     public int Frequency => microphone.selectedDevice.sampleRate;
     public int Channels => microphone.selectedDevice.channelCount;
 #else
@@ -67,7 +67,7 @@ public class VoiceRecorder : MonoBehaviour
     private void Start()
     {
         _stopwatch.Start();
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         microphone.readyEvent.AddListener(OnMicrophoneReady);
         microphone.deviceListEvent.AddListener(SetDeviceList);
         microphone.dataEvent.AddListener(OnDataReceived);
@@ -92,7 +92,8 @@ public class VoiceRecorder : MonoBehaviour
         if (SecondsOfSilence > MaxPauseLength &&
            (IsCalibrating || hasVoiceBeenDetected))
             StopRecord();
-#if !MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
+#else
         var pos = Microphone.GetPosition(null);
         if (pos - _position < _clip.frequency) return;
         OnDataReceived(GetDataFrom(pos));
@@ -118,7 +119,7 @@ public class VoiceRecorder : MonoBehaviour
         hasVoiceBeenDetected = false;
         IsRecording = true;
         AllocateClip();
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         microphone.Begin();
 #else
         _clip = Microphone.Start(null, true, 120, Frequency);
@@ -156,7 +157,7 @@ public class VoiceRecorder : MonoBehaviour
         IsRecording = false;
         _stopwatch.Stop();
         _stopwatch.Reset();
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         microphone.End();
 #else
         Microphone.End(null);
@@ -256,7 +257,7 @@ public class VoiceRecorder : MonoBehaviour
     private void CreateClip()
     {
         var data = new float[_position];
-#if MICROPHONE_WEBGL
+#if MICROPHONE_WEBGL && UNITY_WEBGL && !UNITY_EDITOR
         Array.Copy(_data, data, _position);
 #else
         _clip.GetData(data, 0);
