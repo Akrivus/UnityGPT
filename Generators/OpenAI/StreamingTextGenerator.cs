@@ -13,6 +13,9 @@ public class StreamingTextGenerator : TextGenerator, IStreamingTextGenerator
     public StreamingTextGenerator(PhrenProxyClient client, List<Message> messages, string model, int maxTokens = 1024, float temperature = 0.5f, string interstitialPrompt = "{0}")
         : base(client, messages, model, maxTokens, temperature, interstitialPrompt) { }
 
+    public StreamingTextGenerator(PhrenProxyClient client, string prompt, string model, int maxTokens = 1024, float temperature = 0.5f, string interstitialPrompt = "{0}")
+        : base(client, prompt, model, maxTokens, temperature, interstitialPrompt) { }
+
     public IPromise<string> RespondTo(string content, Action<string> tokenCallback)
     {
         AddContext(content);

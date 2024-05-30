@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 public class PhrenProxyClient : MonoBehaviour
 {
     public static string DefaultUri => "https://api.openai.com/v1/";
-    public static string DefaultToken => Environment.GetEnvironmentVariable("OPENAI_ACCESS_TOKEN");
+    public static string DefaultToken => Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
     public event Action<ProxySession> OnSuccessfulLink;
 
@@ -33,23 +33,24 @@ public class PhrenProxyClient : MonoBehaviour
 
     private void Awake()
     {
-        if (isAutoLogin)
-            OnSuccessfulLink?.Invoke(defaults.Build());
+        if (isAutoLogin) AutoLogin(defaults.Build());
         if (versionIsPrompt)
             promptId = Application.version;
     }
 
     public IPromise<ProxySession> Login<T>(T context) where T : IProxyContext
         => Post<ProxySession>(Uri_Login, context)
-        .Then((session) =>
-        {
-            accessToken = session.AccessToken;
-            OnSuccessfulLink?.Invoke(session);
-            return session;
-        });
+        .Then((session) => Promise<ProxySession>.Resolved(AutoLogin(session)));
 
     public IPromise<ProxySession> Login()
         => Login(new ProxyContext(promptId));
+
+    public ProxySession AutoLogin(ProxySession session)
+    {
+        accessToken = session.AccessToken;
+        OnSuccessfulLink?.Invoke(session);
+        return session;
+    }
 
     public RequestHelper SetHeaders(RequestHelper helper, string contentType = null)
     {

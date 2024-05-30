@@ -36,19 +36,17 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 
     private IStreamingTextGenerator textGenerator;
     private WordMapping wordMapping;
-    private float pitch = 1.0f;
 
     private List<SpeechFragment> fragments = new List<SpeechFragment>();
     private SpeechFragment fragment = new SpeechFragment();
 
-    public SpeechGenerator(PhrenProxyClient client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, float pitch = 1.0f, Roles role = Roles.System) : base(client, "tts-1", voice, role)
+    public SpeechGenerator(PhrenProxyClient client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, Roles role = Roles.System) : base(client, "tts-1", voice, role)
     {
         this.textGenerator = textGenerator;
         this.wordMapping = wordMapping;
-        this.pitch = pitch;
     }
 
-    public IPromise<string> RespondTo(string content) => RespondTo(content, (text) => { });
+    public IPromise<string> RespondTo(string content, params string[] context) => RespondTo(content, (text) => { });
 
     public IPromise<string> RespondTo(string content, Action<string> tokenCallback)
     {
@@ -70,7 +68,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
             IsGeneratingSpeech = true;
             OnSpeechPlaying?.Invoke(fragment.Text);
             var delay = wordMapping.GetStopCodeDelay(fragment.Text);
-            var seconds = fragment.Play(source, pitch);
+            var seconds = fragment.Play(source);
             yield return new WaitForSeconds(seconds);
             IsGeneratingSpeech = false;
         }
@@ -118,13 +116,12 @@ public class SpeechFragment
         Text = string.Empty;
     }
 
-    public float Play(AudioSource source, float pitch)
+    public float Play(AudioSource source)
     {
-        source.pitch = pitch;
         source.clip = Clip;
         source.Play();
         var seconds = Clip.length;
-        seconds *= pitch;
+        seconds *= source.pitch;
         return seconds;
     }
 

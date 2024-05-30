@@ -1,6 +1,7 @@
 ﻿using RSG;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 public class TextGenerator : ITextGenerator, IToolCaller
 {
@@ -35,9 +36,9 @@ public class TextGenerator : ITextGenerator, IToolCaller
     public TextGenerator(PhrenProxyClient client, string prompt, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
         : this(client, new List<Message> { new Message(prompt, Roles.System) }, model, maxTokens, temperature, interstitialPrompt) { }
 
-    public IPromise<string> RespondTo(string content)
+    public IPromise<string> RespondTo(string content, params string[] args)
     {
-        content = string.Format(InterstitialPrompt, content);
+        content = string.Format(InterstitialPrompt, content, args);
         AddContext(content);
         return SendContext();
     }

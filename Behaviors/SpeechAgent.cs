@@ -58,7 +58,6 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
 
     public virtual IEnumerator RespondTo(string message, Action<string> callback)
     {
-        message = string.Format("{0}\nNow respond as {1}:", message, name);
         yield return new WaitUntil(() => speaker.IsReady);
         yield return speaker.RespondTo(message).Then(callback);
         yield return speaker.PlaySpeech(source);
@@ -69,7 +68,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         text = new StreamingTextGenerator(client, session.Messages, session.Model, session.MaxTokens, session.Temperature, session.InterstitialPrompt);
-        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, pitch, role);
+        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, role);
         DispatchSuccessfulLink(session);
     }
 

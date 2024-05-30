@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public interface ITextGenerator
 {
     public List<Message> Prompt { get; set; }
-    public IPromise<string> RespondTo(string message);
+    public IPromise<string> RespondTo(string message, params string[] context);
     public void ResetContext();
 
     public event Func<string, IPromise<string>> OnTextGenerated;

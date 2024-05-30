@@ -41,7 +41,7 @@ public class WhisperTextGenerator : ITextGenerator
         SetPromptGenerator(prompt);
     }
 
-    public IPromise<string> RespondTo(string message)
+    public IPromise<string> RespondTo(string message, params string[] context)
     {
         if (promptGenerated) return SendContext();
         message = string.IsNullOrEmpty(message) ? prompt : message;
