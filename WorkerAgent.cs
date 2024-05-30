@@ -13,9 +13,6 @@ public class WorkerAgent : MonoBehaviour
     [SerializeField]
     private float posture = 0.0f;
 
-    [SerializeField]
-    private Stage stage;
-
     public float Energy
     {
         get => animator.GetFloat("Energy");
@@ -91,7 +88,7 @@ public class WorkerAgent : MonoBehaviour
     public void WalkState(SceneAgent agent)
     {
         if (nav.remainingDistance <= 0.1f || nav.isPathStale)
-            nav.SetDestination(stage.GetRandomLocation());
+            nav.SetDestination(RandomDonut(2, 8));
         if (Energy <= -1f)
             agent.State = SceneAgent.SceneAgentState.Idle;
         Energy -= tick;
@@ -100,5 +97,18 @@ public class WorkerAgent : MonoBehaviour
     public void WorkState(SceneAgent agent)
     {
 
+    }
+
+    private Vector3 RandomDonut(float minRadius, float maxRadius)
+    {
+        return new Vector3(RandomDonutShape(minRadius, maxRadius), 0, RandomDonutShape(minRadius, maxRadius));
+    }
+
+    private float RandomDonutShape(float minRadius, float maxRadius)
+    {
+        var probe = Random.Range(minRadius, maxRadius);
+        if (Random.Range(0, 1) > 0.5f)
+            return -probe;
+        return probe;
     }
 }
