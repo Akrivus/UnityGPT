@@ -12,51 +12,43 @@ public class LinkOpenAI : MonoBehaviour
 
     public event Action<SessionData> OnSuccessfulLink;
 
-    public string Uri_Speech => endpoint + "audio/speech";
-    public string Uri_Transcriptions => endpoint + "audio/transcriptions";
-    public string Uri_Chat => endpoint + "chat/completions";
-    public string Uri_Embeddings => endpoint + "embeddings";
-    public string Uri_Login => endpoint + "api";
+    public string Uri_Speech => apiEndpoint + "audio/speech";
+    public string Uri_Transcriptions => apiEndpoint + "audio/transcriptions";
+    public string Uri_Chat => apiEndpoint + "chat/completions";
+    public string Uri_Embeddings => apiEndpoint + "embeddings";
+    public string Uri_Login => apiEndpoint + "api";
 
     [SerializeField]
-    private string endpoint;
+    private string apiEndpoint;
     [SerializeField]
-    private string promptId;
+    private string accessToken;
     [SerializeField]
     private DefaultSessionData defaults;
-    [SerializeField]
-    private bool isAutoLogin = false;
-
-    private string accessToken;
 
     private void Awake()
     {
-        if (isAutoLogin) AutoLogin(defaults.Build(DefaultUri, DefaultToken));
+        if (Application.absoluteURL.IndexOf('?') > -1)
+            accessToken = Application.absoluteURL.Split('?')[1].Split('=')[1];
+        if (string.IsNullOrEmpty(accessToken))
+            accessToken = DefaultToken;
+        if (accessToken.StartsWith("sk-"))
+            AutoLogin();
     }
 
     public IPromise<SessionData> Login<T>(T context) where T : IPhrenContext
         => Post<SessionData>(Uri_Login, context)
-        .Then((session) => Promise<SessionData>.Resolved(AutoLogin(session)));
+        .Then((session) => AutoLogin(session));
 
     public IPromise<SessionData> Login()
-        => isAutoLogin ? AutoLogin()
-        : Login(new PromptData(promptId));
+        => Login(new PromptData(accessToken));
 
-    public IPromise<SessionData> AutoLogin()
+    public IPromise<SessionData> AutoLogin(SessionData session = null)
     {
-        accessToken = DefaultToken;
-        endpoint = DefaultUri;
-
-        var session = defaults.Build(DefaultUri, accessToken);
-        OnSuccessfulLink?.Invoke(session);
-        return Promise<SessionData>.Resolved(session);
-    }
-
-    public SessionData AutoLogin(SessionData session)
-    {
+        if (session == null)
+            session = defaults.Build(DefaultUri, accessToken);
         accessToken = session.AccessToken;
         OnSuccessfulLink?.Invoke(session);
-        return session;
+        return Promise<SessionData>.Resolved(session);
     }
 
     public RequestHelper SetHeaders(RequestHelper helper, string contentType = null)
