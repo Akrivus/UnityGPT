@@ -8,7 +8,7 @@ public abstract class BaseToolCaller<T, V> where T : IToolCall
 
     protected TextGenerator AI => generator;
 
-    public BaseToolCaller(PhrenProxyClient client, IToolCall tool, string instruction, string prompt = "")
+    public BaseToolCaller(LinkOpenAI client, IToolCall tool, string instruction, string prompt = "")
     {
         prompt = string.Format(Prompt, prompt, instruction);
         generator = new TextGenerator(client, prompt, "gpt-3.5-turbo", 256, 0.1f);

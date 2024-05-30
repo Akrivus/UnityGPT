@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-public class ProxySession
+public class SessionData
 {
     public string AccessToken { get; set; }
     public string Href { get; set; }

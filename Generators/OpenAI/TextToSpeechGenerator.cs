@@ -9,11 +9,11 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
     public string Model { get; protected set; } = "tts-1";
     public string Voice { get; set; } = "echo";
 
-    protected PhrenProxyClient api;
+    protected LinkOpenAI api;
 
     private Roles role = Roles.System;
 
-    public TextToSpeechGenerator(PhrenProxyClient api, string model, string voice, Roles role = Roles.System)
+    public TextToSpeechGenerator(LinkOpenAI api, string model, string voice, Roles role = Roles.System)
     {
         this.api = api;
         Model = model;

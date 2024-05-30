@@ -1,14 +1,14 @@
-﻿public class ProxyContext : IProxyContext
+﻿public class PromptData : IPhrenContext
 {
     public string PromptId { get; set; }
 
-    public ProxyContext(string promptId)
+    public PromptData(string promptId)
     {
         PromptId = promptId;
     }
 }
 
-public interface IProxyContext
+public interface IPhrenContext
 {
     public string PromptId { get; set; }
 }

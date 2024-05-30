@@ -4,7 +4,7 @@ using static OpinionMiner;
 
 public class OpinionMiner : BaseToolCaller<Opinion, float>
 {
-    public OpinionMiner(PhrenProxyClient client, string prompt = "")
+    public OpinionMiner(LinkOpenAI client, string prompt = "")
         : base(client, new Opinion(), "Report your opinion of the following text.", prompt) { }
 
     public IPromise<OpinionMiner> Digest(string question)

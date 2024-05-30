@@ -21,7 +21,7 @@ public class SceneAgent : MonoBehaviour
     public event Action<string> OnMessage;
 
     [SerializeField]
-    private PhrenProxyClient client;
+    private LinkOpenAI client;
 
     [SerializeField]
     private string model = "gpt-3.5-turbo";
@@ -65,6 +65,8 @@ public class SceneAgent : MonoBehaviour
     public string OuterPrompt => outerPrompt;
     public float Price => Budget / WORTH_TO_PRICE_RATIO;
 
+    public bool IsReady => speech.IsReady;
+
     private void Awake()
     {
         var prompt = string.Format(INNER_PROMPT_TEMPLATE, innerPrompt);
@@ -104,6 +106,8 @@ public class SceneAgent : MonoBehaviour
     {
         yield return new WaitUntil(() => agents.Count > 1);
 
+        var previous = agents[(index - 1) % agents.Count];
+        yield return new WaitUntil(() => previous.IsReady);
         yield return agents[index].RespondTo(message, agents[index].name);
 
         index = (index + 1) % agents.Count;

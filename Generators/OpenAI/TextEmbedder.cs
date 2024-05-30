@@ -2,9 +2,9 @@
 
 public class TextEmbedder : IEmbedding
 {
-    private PhrenProxyClient api;
+    private LinkOpenAI api;
 
-    public TextEmbedder(PhrenProxyClient client)
+    public TextEmbedder(LinkOpenAI client)
     {
         api = client;
     }

@@ -40,7 +40,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private List<SpeechFragment> fragments = new List<SpeechFragment>();
     private SpeechFragment fragment = new SpeechFragment();
 
-    public SpeechGenerator(PhrenProxyClient client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, Roles role = Roles.System) : base(client, "tts-1", voice, role)
+    public SpeechGenerator(LinkOpenAI client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, Roles role = Roles.System) : base(client, "tts-1", voice, role)
     {
         this.textGenerator = textGenerator;
         this.wordMapping = wordMapping;

@@ -5,12 +5,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class PhrenProxyClient : MonoBehaviour
+public class LinkOpenAI : MonoBehaviour
 {
     public static string DefaultUri => "https://api.openai.com/v1/";
     public static string DefaultToken => Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
-    public event Action<ProxySession> OnSuccessfulLink;
+    public event Action<SessionData> OnSuccessfulLink;
 
     public string Uri_Speech => endpoint + "audio/speech";
     public string Uri_Transcriptions => endpoint + "audio/transcriptions";
@@ -23,7 +23,7 @@ public class PhrenProxyClient : MonoBehaviour
     [SerializeField]
     private string promptId;
     [SerializeField]
-    private ProxySessionFactory defaults;
+    private DefaultSessionData defaults;
     [SerializeField]
     private bool isAutoLogin = false;
 
@@ -31,28 +31,28 @@ public class PhrenProxyClient : MonoBehaviour
 
     private void Awake()
     {
-        if (isAutoLogin) AutoLogin(defaults.Build());
+        if (isAutoLogin) AutoLogin(defaults.Build(DefaultUri, DefaultToken));
     }
 
-    public IPromise<ProxySession> Login<T>(T context) where T : IProxyContext
-        => Post<ProxySession>(Uri_Login, context)
-        .Then((session) => Promise<ProxySession>.Resolved(AutoLogin(session)));
+    public IPromise<SessionData> Login<T>(T context) where T : IPhrenContext
+        => Post<SessionData>(Uri_Login, context)
+        .Then((session) => Promise<SessionData>.Resolved(AutoLogin(session)));
 
-    public IPromise<ProxySession> Login()
+    public IPromise<SessionData> Login()
         => isAutoLogin ? AutoLogin()
-        : Login(new ProxyContext(promptId));
+        : Login(new PromptData(promptId));
 
-    public IPromise<ProxySession> AutoLogin()
+    public IPromise<SessionData> AutoLogin()
     {
         accessToken = DefaultToken;
         endpoint = DefaultUri;
 
         var session = defaults.Build(DefaultUri, accessToken);
         OnSuccessfulLink?.Invoke(session);
-        return Promise<ProxySession>.Resolved(session);
+        return Promise<SessionData>.Resolved(session);
     }
 
-    public ProxySession AutoLogin(ProxySession session)
+    public SessionData AutoLogin(SessionData session)
     {
         accessToken = session.AccessToken;
         OnSuccessfulLink?.Invoke(session);
@@ -113,10 +113,11 @@ public class PhrenProxyClient : MonoBehaviour
         });
 
     [Serializable]
-    private struct ProxySessionFactory
+    private struct DefaultSessionData
     {
         [TextArea(3, 9)]
         public string Prompt;
+
         [Range(0, 1)]
         public float Temperature;
         public string Name;
@@ -125,14 +126,15 @@ public class PhrenProxyClient : MonoBehaviour
         public string Model;
         public string Voice;
         public int MaxTokens;
+
         [TextArea(2, 8)]
         public string InterstitialPrompt;
             
         public List<Message> Messages => new List<Message> { new Message(Prompt, Roles.System) };
 
-        public ProxySession Build(string uri, string token)
+        public SessionData Build(string uri, string token)
         {
-            return new ProxySession
+            return new SessionData
             {
                 Href = uri,
                 AccessToken = token,

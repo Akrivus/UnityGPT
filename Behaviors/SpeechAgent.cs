@@ -29,7 +29,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
         remove => whisper.OnTextGenerated -= value;
     }
 
-    public event Action<ProxySession> OnSuccessfulLink;
+    public event Action<SessionData> OnSuccessfulLink;
 
     protected IStreamingTextGenerator text;
     protected SpeechGenerator speaker;
@@ -37,7 +37,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
 
     [Header("Chat")]
     [SerializeField]
-    protected PhrenProxyClient client;
+    protected LinkOpenAI client;
     [SerializeField]
     protected Roles role = Roles.System;
 
@@ -67,7 +67,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
         yield return new WaitUntil(() => speaker.IsReady);
     }
 
-    public virtual void Link(ProxySession session)
+    public virtual void Link(SessionData session)
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         text = new StreamingTextGenerator(client, session.Messages, session.Model, session.MaxTokens, session.Temperature, session.InterstitialPrompt);
@@ -76,7 +76,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
         DispatchSuccessfulLink(session);
     }
 
-    protected void DispatchSuccessfulLink(ProxySession session)
+    protected void DispatchSuccessfulLink(SessionData session)
     {
         OnSuccessfulLink?.Invoke(session);
     }

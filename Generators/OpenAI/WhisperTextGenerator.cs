@@ -25,11 +25,11 @@ public class WhisperTextGenerator : ITextGenerator
     private TextGenerator promptGenerator;
     private bool promptGenerated = false;
 
-    private PhrenProxyClient api;
+    private LinkOpenAI api;
 
     private Roles role = Roles.System;
 
-    public WhisperTextGenerator(PhrenProxyClient api, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature, Roles role = Roles.System)
+    public WhisperTextGenerator(LinkOpenAI api, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature, Roles role = Roles.System)
     {
         this.api = api;
         this.recorder = recorder;

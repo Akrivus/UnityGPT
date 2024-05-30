@@ -20,9 +20,9 @@ public class TextGenerator : ITextGenerator, IToolCaller
 
     protected List<Tool> tools => GetToolList();
 
-    protected PhrenProxyClient api;
+    protected LinkOpenAI api;
 
-    public TextGenerator(PhrenProxyClient api, List<Message> messages, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
+    public TextGenerator(LinkOpenAI api, List<Message> messages, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
     {
         this.api = api;
         Prompt = messages;
@@ -33,7 +33,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
         ResetContext();
     }
 
-    public TextGenerator(PhrenProxyClient client, string prompt, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
+    public TextGenerator(LinkOpenAI client, string prompt, string model, int maxTokens = 1024, float temperature = 0f, string interstitialPrompt = "{0}")
         : this(client, new List<Message> { new Message(prompt, Roles.System) }, model, maxTokens, temperature, interstitialPrompt) { }
 
     public IPromise<string> RespondTo(string content, params string[] args)

@@ -36,7 +36,7 @@ public class WhisperAgent : SpeechAgent
         yield return new WaitUntil(() => _isWhisperReady);
     }
 
-    public override void Link(ProxySession session)
+    public override void Link(SessionData session)
     {
         whisper = new WhisperTextGenerator(client, recorder, session.Description, model, maxTokens, temperature, role);
         DispatchSuccessfulLink(session);
