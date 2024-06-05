@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   stopCodes:
   - Code: .
-    Delay: 0.5
+    Delay: 0.2
   - Code: '?'
-    Delay: 1
+    Delay: 0.3
   - Code: '!'
-    Delay: 1
+    Delay: 0.1
   - Code: '
 
 '
-    Delay: 2
+    Delay: 0.4
   mappings: []

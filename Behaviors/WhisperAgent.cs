@@ -30,10 +30,10 @@ public class WhisperAgent : SpeechAgent
 
     public override IEnumerator RespondTo(string message, Action<string> callback)
     {
-        yield return new WaitUntil(() => _isWhisperReady);
+        yield return new UnityEngine.WaitUntil(() => _isWhisperReady);
         _isWhisperReady = false;
         yield return whisper.RespondTo(message).Then(SetReady + callback);
-        yield return new WaitUntil(() => _isWhisperReady);
+        yield return new UnityEngine.WaitUntil(() => _isWhisperReady);
     }
 
     public override void Link(SessionData session)

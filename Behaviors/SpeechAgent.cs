@@ -60,7 +60,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
 
     public virtual IEnumerator RespondTo(string message, Action<string> callback)
     {
-        message = string.Format(interstitialPrompt, message, name);
+        message = interstitialPrompt.Format(message, name);
         yield return new WaitUntil(() => speaker.IsReady);
         yield return speaker.RespondTo(message).Then(callback);
         yield return speaker.PlaySpeech(source);

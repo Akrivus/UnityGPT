@@ -10,10 +10,10 @@ public class WordMapping : ScriptableObject
     [SerializeField]
     private List<StopCode> stopCodes = new List<StopCode>()
     {
-        new StopCode { Code = ".",  Delay = 0.5f },
-        new StopCode { Code = "?" },
-        new StopCode { Code = "!" },
-        new StopCode { Code = "\n", Delay = 2.0f },
+        new StopCode { Code = ".",  Delay = 0.2f },
+        new StopCode { Code = "?",  Delay = 0.3f },
+        new StopCode { Code = "!",  Delay = 0.1f },
+        new StopCode { Code = "\n", Delay = 0.4f },
     };
 
     [Tooltip("List of special words and their pronounciations")]

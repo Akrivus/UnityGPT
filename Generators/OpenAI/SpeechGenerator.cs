@@ -6,14 +6,13 @@ using UnityEngine;
 
 public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 {
-    private readonly static IPromise<string> Busy = Promise<string>.Rejected(new Exception("Speech generation is already in progress."));
-
     public event Func<string, IPromise<string>> OnTextGenerated
     {
         add => textGenerator.OnTextGenerated += value;
         remove => textGenerator.OnTextGenerated -= value;
     }
-    public event Action<string[]> OnContextReset
+
+    public event Action<ITextGenerator> OnContextReset
     {
         add => textGenerator.OnContextReset += value;
         remove => textGenerator.OnContextReset -= value;
@@ -24,6 +23,10 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
 
     public event Action<string> OnSpeechPlaying;
     public event Action OnSpeechComplete;
+    public event Func<SpeechGenerator, IPromise> OnBeforeContextReset;
+
+    public int MaxResponseTime { get; set; } = 15;
+    public int MaxResponseTimeInMS => MaxResponseTime * 1000;
 
     public bool IsReady { get; private set; } = true;
     public bool IsGeneratingSpeech { get; private set; }
@@ -33,6 +36,12 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         get => textGenerator.Prompt;
         set => textGenerator.Prompt = value;
     }
+
+    public bool TextOnly { get; set; }
+
+    public IStreamingTextGenerator Text => textGenerator;
+
+    public string LastMessage => textGenerator.LastMessage;
 
     private IStreamingTextGenerator textGenerator;
     private WordMapping wordMapping;
@@ -46,36 +55,44 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         this.wordMapping = wordMapping;
     }
 
-    public IPromise<string> RespondTo(string content, params string[] context) => RespondTo(content, (text) => { });
+    public IPromise<string> RespondTo(string content, params string[] args) => RespondTo(content, (text) => { }, args);
 
-    public IPromise<string> RespondTo(string content, Action<string> tokenCallback)
+    public IPromise<string> RespondTo(string content, Action<string> tokenCallback, params string[] args)
     {
-        if (!IsReady) return Busy;
         IsReady = false;
         IsGeneratingText = true;
         fragments.Clear();
-        return textGenerator.RespondTo(content, GenerateSpeechFragments + tokenCallback)
+        return textGenerator.RespondTo(content, GenerateSpeechFragments + tokenCallback, args)
             .Then(Respond);
     }
 
-    public IEnumerator PlaySpeech(AudioSource source, int i = 0)
+    public IEnumerator PlaySpeech(AudioSource source, int i = 0, float t = 0)
     {
-        yield return new WaitUntil(() => fragments.Count > i);
+        if (TextOnly) yield break;
+        yield return new WaitFor(() => fragments.Count > i, MaxResponseTimeInMS);
+
         for (var _ = i; i < fragments.Count; i++)
-        {
-            var fragment = fragments[i];
-            yield return new WaitUntil(fragment.IsReady);
-            IsGeneratingSpeech = true;
-            OnSpeechPlaying?.Invoke(fragment.Text);
-            var delay = wordMapping.GetStopCodeDelay(fragment.Text);
-            var seconds = fragment.Play(source);
-            yield return new WaitForSeconds(seconds);
-            IsGeneratingSpeech = false;
-        }
-        if (IsGeneratingText)
-            yield return PlaySpeech(source, i);
+            yield return PlayFragment(fragments[i], source);
+        if (IsGeneratingText && t < MaxResponseTime)
+            yield return PlaySpeech(source, i, t + Time.deltaTime);
         IsReady = true;
         OnSpeechComplete?.Invoke();
+    }
+
+    private IEnumerator PlayFragment(SpeechFragment fragment, AudioSource source)
+    {
+        if (TextOnly) yield break;
+        yield return new WaitUntil(fragment.HasClip);
+
+        IsGeneratingSpeech = true;
+
+        OnSpeechPlaying?.Invoke(fragment.Text);
+
+        var time = fragment.Play(source);
+        time += wordMapping.GetStopCodeDelay(fragment.Text);
+        yield return new WaitForSeconds(time);
+
+        IsGeneratingSpeech = false;
     }
 
     private void GenerateSpeechFragments(string token)
@@ -88,6 +105,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private void GenerateSpeechFragment()
     {
         OnStreamReceived?.Invoke(fragment.Text);
+        if (TextOnly) return;
         fragment.Generate(Generate(fragment.Text));
         fragments.Add(fragment);
         fragment = new SpeechFragment();
@@ -100,9 +118,21 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         return text;
     }
 
+    public ITextGenerator Fork(string prompt)
+    {
+        return new SpeechGenerator(client, (IStreamingTextGenerator) textGenerator.Fork(prompt), wordMapping, Voice);
+    }
+
     public void ResetContext()
     {
-        textGenerator.ResetContext();
+        OnBeforeContextReset(this)?.Then(textGenerator.ResetContext);
+        if (OnBeforeContextReset == null)
+            textGenerator.ResetContext();
+    }
+
+    public void SetReady()
+    {
+        IsReady = true;
     }
 }
 
@@ -111,6 +141,8 @@ public class SpeechFragment
     public string Text { get; set; }
     public AudioClip Clip { get; set; }
 
+    private bool skipped;
+
     public SpeechFragment()
     {
         Text = string.Empty;
@@ -118,6 +150,8 @@ public class SpeechFragment
 
     public float Play(AudioSource source)
     {
+        if (skipped || Clip == null)
+            return Text.Length * 0.1f;
         source.clip = Clip;
         source.Play();
         var seconds = Clip.length;
@@ -130,9 +164,14 @@ public class SpeechFragment
         getClip.Then((clip) => Clip = clip);
     }
 
-    public bool IsReady()
+    public void Skip()
     {
-        return Clip != null;
+        skipped = true;
+    }
+
+    public bool HasClip()
+    {
+        return skipped || Clip != null;
     }
 
     public static SpeechFragment operator +(SpeechFragment fragment, string token)

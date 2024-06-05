@@ -9,9 +9,9 @@ public class TextEmbedder : IEmbedding
         api = client;
     }
 
-    public IPromise<float[]> FetchEmbeddingFor(string text)
+    public IPromise<float[]> Embed(string text, int dimensions)
     {
-        var body = new GenerateEmbedding(text);
+        var body = new GenerateEmbedding(text, dimensions);
         return api.Post<GeneratedEmbedding>(api.Uri_Embeddings, body)
             .Then(response => response.Embedding);
     }

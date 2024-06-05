@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
-using static Message;
 
 public class GenerateText
 {
@@ -40,26 +39,26 @@ public class Message
 {
     [JsonProperty(NullValueHandling = NullValueHandling.Include)]
     public string Content { get; set; }
-    public string Name { get; set; }
     public Roles Role { get; set; }
-    public FunctionCall FunctionCall { get; set; }
-    public List<ToolCallReference> ToolCalls { get; set; }
+    public ToolCallReference[] ToolCalls { get; set; }
     public string ToolCallId { get; set; }
 
-    public Message(string content, Roles role = Roles.User, string name = null, string toolCallId = null)
+    public Message(string content, Roles role = Roles.User)
     {
         Content = content;
         Role = role;
-        Name = name;
-        ToolCallId = toolCallId;
     }
 
-    public Message(string content, ToolCallReference tool)
+    public Message(ToolCallReference[] toolCalls)
+        : this(null, Roles.Assistant)
     {
-        Content = content;
-        Role = Roles.Tool;
-        Name = tool.Function.Name;
-        ToolCallId = tool.Id;
+        ToolCalls = toolCalls;
+    }
+
+    public Message(string content, string toolCallId)
+        : this(content, Roles.Tool)
+    {
+        ToolCallId = toolCallId;
     }
 
     public Message() { }
@@ -75,6 +74,7 @@ public class ToolCallReference
 {
     public string Type { get; set; } = "function";
     public string Id { get; set; }
+    public int Index { get; set; }
     public FunctionCall Function { get; set; }
 
     public ToolCallReference() { }
@@ -102,14 +102,14 @@ public class GeneratedText<T> where T : Choice
     public string Object { get; set; }
     public int Created { get; set; }
     public string Model { get; set; }
-    public List<T> Choices { get; set; }
+    public T[] Choices { get; set; }
     public Usage Usage { get; set; }
 
     public T Choice => Choices[0];
     public string Content => Choice.Content;
     public FinishReasons FinishReason => Choice.FinishReason;
-    public List<ToolCallReference> ToolCalls => Choice.Message.ToolCalls;
-    public bool ToolCall => ToolCalls.Count > 0;
+    public ToolCallReference[] ToolCalls => Choice.Message.ToolCalls;
+    public bool ToolCall => ToolCalls != null && ToolCalls.Length > 0;
 }
 
 public class Choice

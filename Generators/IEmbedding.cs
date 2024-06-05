@@ -2,5 +2,5 @@
 
 public interface IEmbedding
 {
-    public IPromise<float[]> FetchEmbeddingFor(string text);
+    public IPromise<float[]> Embed(string text, int dimensions = 1536);
 }

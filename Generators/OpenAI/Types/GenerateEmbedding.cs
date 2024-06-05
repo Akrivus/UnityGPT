@@ -1,7 +1,7 @@
 ﻿
 public class GenerateEmbedding
 {
-    public string Model { get; set; }
+    public string Model { get; set; } = "text-embedding-3-small";
     public string Input { get; set; }
     public int Dimensions { get; set; } = 1536;
 

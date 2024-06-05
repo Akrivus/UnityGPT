@@ -23,7 +23,7 @@ public class MultiAgentChat : MonoBehaviour
 
     private IEnumerator Chat()
     {
-        yield return new WaitUntil(() => agents[i].IsReady);
+        yield return new UnityEngine.WaitUntil(() => agents[i].IsReady);
         yield return agents[i].RespondTo(message, ThenSetMessage);
         i = (i + 1) % agents.Length;
         if (!IsExited)

@@ -33,7 +33,8 @@ public class OpinionMiner : BaseToolCaller<Opinion, float>
             "Report opinion.",
             new NumberParam("Score", "Sentiment score.", true, -1, 1));
 
-        public string Execute(object args) => Execute((Args) args);
+        public IPromise<string> Execute(object args)
+            => Promise<string>.Resolved(Execute((Args) args));
 
         public string Execute(Args args)
         {
