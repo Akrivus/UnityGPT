@@ -7,10 +7,13 @@ public abstract class BaseToolCaller<T, V> where T : IToolCall
     private TextGenerator generator;
     private IToolCall toolCall;
 
+    private bool useToolResponse;
+
     protected TextGenerator AI => generator;
 
-    public BaseToolCaller(LinkOpenAI client, IToolCall tool, string instruction, string prompt = "")
+    public BaseToolCaller(LinkOpenAI client, IToolCall tool, bool useToolResponse, string instruction, string prompt = "")
     {
+        this.useToolResponse = useToolResponse;
         prompt = Prompt.Format(prompt, instruction);
         toolCall = tool;
         generator = new TextGenerator(client, prompt, "gpt-3.5-turbo", 256, 0.1f);
@@ -21,12 +24,6 @@ public abstract class BaseToolCaller<T, V> where T : IToolCall
 
     protected IPromise<string> Execute(string text)
     {
-        return generator.Execute(toolCall.Tool.Name, text).Then(ReturnText);
-    }
-
-    private string ReturnText(string text)
-    {
-        generator.ResetContext();
-        return text;
+        return generator.Execute(toolCall.Tool.Name, text, useToolResponse);
     }
 }

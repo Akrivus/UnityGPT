@@ -13,6 +13,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
     public string ToolChoice { get; set; } = null;
     public string InterstitialPrompt { get; set; } = "{0}";
     public List<Message> Prompt { get; set; }
+    public bool UseToolResponse { get; set; } = true;
 
     public string LastMessage => messages[Math.Max(messages.Count - 1, 0)].Content;
 
@@ -42,6 +43,15 @@ public class TextGenerator : ITextGenerator, IToolCaller
         content = InterstitialPrompt.Format(content, args);
         AddContext(content);
         return SendMessages();
+    }
+
+    public IPromise<string> SendMessagesForToolCalls()
+    {
+        if (UseToolResponse)
+            return SendMessages();
+        ResetContext();
+        UseToolResponse = true;
+        return Promise<string>.Resolved("OK");
     }
 
     public IPromise<string> SendMessages()
@@ -80,7 +90,7 @@ public class TextGenerator : ITextGenerator, IToolCaller
 
     public IPromise<string> DispatchGeneratedText(GeneratedText<Choice> text)
     {
-        if (text.ToolCall) return ExecuteToolCalls(text.ToolCalls).Then((_) => SendMessages());
+        if (text.ToolCall) return ExecuteToolCalls(text.ToolCalls).Then((_) => SendMessagesForToolCalls());
 
         messages.Add(text.Choice.Message);
 
@@ -106,22 +116,24 @@ public class TextGenerator : ITextGenerator, IToolCaller
         return result;
     }
 
-    public IPromise<string> Execute(string function, string input = "")
+    public IPromise<string> Execute(string function, string input = "", bool useToolResponse = true)
     {
         foreach (var toolCall in toolCalls.Values)
             if (toolCall.Tool.Name == function)
                 ToolChoice = toolCall.Tool.Name;
+        UseToolResponse = useToolResponse;
         return RespondTo(input);
     }
 
     protected IPromise<string> ExecuteToolCalls(ToolCallReference[] toolCalls)
     {
         AddToolCalls(toolCalls);
-        ToolChoice = null;
 
         var promise = ExecuteToolCall(toolCalls[0]);
         for (var i = 1; i < toolCalls.Length; i++)
             promise = promise.Then((_) => ExecuteToolCall(toolCalls[i]));
+
+        ToolChoice = null;
         return promise;
     }
 

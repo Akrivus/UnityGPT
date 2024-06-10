@@ -18,6 +18,8 @@ public class WhisperTextGenerator : ITextGenerator
         set => promptGenerator.Prompt = value;
     }
 
+    public bool IsReady { get; private set; }
+
     private VoiceRecorder recorder;
     private string prompt;
     private string model;
@@ -31,21 +33,24 @@ public class WhisperTextGenerator : ITextGenerator
 
     private Roles role = Roles.System;
 
-    public WhisperTextGenerator(LinkOpenAI api, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature, Roles role = Roles.System)
+    public WhisperTextGenerator(LinkOpenAI client, VoiceRecorder recorder, string prompt, string model, int maxTokens, float temperature, Roles role = Roles.System)
     {
-        this.client = api;
+        this.client = client;
         this.recorder = recorder;
         this.prompt = prompt;
         this.model = model;
         this.maxTokens = maxTokens;
         this.temperature = temperature;
         this.role = role;
-        SetPromptGenerator(prompt);
+
+        if (string.IsNullOrEmpty(prompt))
+            SetPromptGenerator(prompt);
     }
 
     public IPromise<string> RespondTo(string message, params string[] context)
     {
-        if (promptGenerated) return SendContext();
+        if (string.IsNullOrEmpty(prompt) || promptGenerated)
+            return SendContext();
         message = string.IsNullOrEmpty(message) ? prompt : message;
         return SetContext(message)
             .Then(SendContext);
@@ -58,6 +63,7 @@ public class WhisperTextGenerator : ITextGenerator
 
     public IPromise<string> SendContext()
     {
+        IsReady = false;
         return recorder.Record().Then(data => UploadAudioAndGenerateText(data));
     }
 
@@ -114,6 +120,7 @@ public class WhisperTextGenerator : ITextGenerator
     {
         LastMessage = text;
         promptGenerated = false;
+        IsReady = true;
         return OnTextGenerated?.Invoke(text)
             ?? Promise<string>.Resolved(text);
     }

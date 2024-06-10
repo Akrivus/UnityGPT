@@ -71,7 +71,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
         if (TextOnly) yield break;
         yield return new WaitFor(() => fragments.Count > i, MaxResponseTimeInMS);
 
-        for (var _ = i; i < fragments.Count; i++)
+        for (var _ = i; i < fragments.Count; ++i)
             yield return PlayFragment(fragments[i], source);
         if (IsGeneratingText && t < MaxResponseTime)
             yield return PlaySpeech(source, i, t + Time.deltaTime);

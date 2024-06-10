@@ -20,10 +20,7 @@ public class GenerateSpeechToText
 
     private WWWForm GenerateFormData(WWWForm form)
     {
-        if (Role != Roles.System)
-            form.AddField("role", Role.ToString().ToLower());
         form.AddField("model", "whisper-1");
-        form.AddField("prompt", Prompt);
         form.AddField("temperature", Temperature.ToString());
         form.AddBinaryData("file", Data, "speech.wav", "audio/wav");
         return form;

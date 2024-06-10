@@ -60,7 +60,7 @@ public class AgenticStateMachine : MonoBehaviour
 
     public StreamingTextGenerator AI { get; private set; }
     public SpeechGenerator Speaker { get; private set; }
-    public string SystemPrompt { get; private set; }
+    public string SystemPrompt { get; set; }
 
     public string LastMessage => Speaker.LastMessage;
 
@@ -81,20 +81,18 @@ public class AgenticStateMachine : MonoBehaviour
 
     private void Awake()
     {
-        SystemPrompt = INNER_PROMPT_TEMPLATE.Format(Prompt, Instructions);
-        AI = new StreamingTextGenerator(client, SystemPrompt, model, maxTokens, temperature, INTER_PROMPT_TEMPLATE);
-        Speaker = new SpeechGenerator(client, AI, wordMapping, voice, speed, Roles.Assistant);
-
-        animator = animator ?? GetComponent<Animator>();
-
         transitions[AgenticState.Waiting] = new EventHandler(GetComponent<WaitingState>());
         transitions[AgenticState.Walking] = new EventHandler(GetComponent<WalkingState>());
         transitions[AgenticState.Talking] = new EventHandler(GetComponent<TalkingState>());
         transitions[AgenticState.Working] = new EventHandler(GetComponent<WorkingState>());
+        animator = animator ?? GetComponent<Animator>();
     }
 
     private void Start()
     {
+        SystemPrompt = INNER_PROMPT_TEMPLATE.Format(Prompt, Instructions);
+        AI = new StreamingTextGenerator(client, SystemPrompt, model, maxTokens, temperature, INTER_PROMPT_TEMPLATE);
+        Speaker = new SpeechGenerator(client, AI, wordMapping, voice, speed, Roles.Assistant);
         Current.Enter(this);
     }
 

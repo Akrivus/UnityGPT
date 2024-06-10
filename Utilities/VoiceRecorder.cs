@@ -60,7 +60,7 @@ public class VoiceRecorder : MonoBehaviour
     public int Frequency => microphone.selectedDevice.sampleRate;
     public int Channels => microphone.selectedDevice.channelCount;
 #else
-    public int Frequency { get; private set; }
+    public int Frequency { get; private set; } = 48000;
     public int Channels { get; private set; } = 1;
 #endif
 
@@ -94,6 +94,7 @@ public class VoiceRecorder : MonoBehaviour
             StopRecord();
 #if MICROPHONE_WEBGL && UNITY_WEBGL
 #else
+        if (_clip == null) return;
         var pos = Microphone.GetPosition(null);
         if (pos - _position < _clip.frequency) return;
         OnDataReceived(GetDataFrom(pos));
