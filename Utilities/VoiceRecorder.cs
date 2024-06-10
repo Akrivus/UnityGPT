@@ -56,7 +56,7 @@ public class VoiceRecorder : MonoBehaviour
     public bool IsRecording { get; private set; }
     public bool IsVoiceDetected { get; private set; }
 
-#if MICROPHONE_WEBGL && UNITY_WEBGL
+#if MICROPHONE_WEBGL
     public int Frequency => microphone.selectedDevice.sampleRate;
     public int Channels => microphone.selectedDevice.channelCount;
 #else
@@ -67,7 +67,7 @@ public class VoiceRecorder : MonoBehaviour
     private void Start()
     {
         _stopwatch.Start();
-#if MICROPHONE_WEBGL && UNITY_WEBGL
+#if MICROPHONE_WEBGL
         microphone.readyEvent.AddListener(OnMicrophoneReady);
         microphone.deviceListEvent.AddListener(SetDeviceList);
         microphone.dataEvent.AddListener(OnDataReceived);
@@ -92,7 +92,7 @@ public class VoiceRecorder : MonoBehaviour
         if (SecondsOfSilence > MaxPauseLength &&
            (IsCalibrating || hasVoiceBeenDetected))
             StopRecord();
-#if MICROPHONE_WEBGL && UNITY_WEBGL
+#if MICROPHONE_WEBGL
 #else
         if (_clip == null) return;
         var pos = Microphone.GetPosition(null);
@@ -120,7 +120,7 @@ public class VoiceRecorder : MonoBehaviour
         hasVoiceBeenDetected = false;
         IsRecording = true;
         AllocateClip();
-#if MICROPHONE_WEBGL && UNITY_WEBGL
+#if MICROPHONE_WEBGL
         microphone.Begin();
 #else
         _clip = Microphone.Start(null, true, 120, Frequency);
@@ -158,7 +158,7 @@ public class VoiceRecorder : MonoBehaviour
         IsRecording = false;
         _stopwatch.Stop();
         _stopwatch.Reset();
-#if MICROPHONE_WEBGL && UNITY_WEBGL
+#if MICROPHONE_WEBGL
         microphone.End();
 #else
         Microphone.End(null);
@@ -258,7 +258,7 @@ public class VoiceRecorder : MonoBehaviour
     private void CreateClip()
     {
         var data = new float[_position];
-#if MICROPHONE_WEBGL && UNITY_WEBGL
+#if MICROPHONE_WEBGL
         Array.Copy(_data, data, _position);
 #else
         _clip.GetData(data, 0);
