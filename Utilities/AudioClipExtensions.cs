@@ -95,4 +95,26 @@ public static class AudioClipExtensions
         buffer.CopyTo(bytes, offset);
         return offset + buffer.Length;
     }
+
+    private static float[] Normalize(float[] data)
+    {
+        float max = 0;
+        for (int i = 0; i < data.Length; i++)
+            max = Mathf.Max(max, Mathf.Abs(data[i]));
+        for (int i = 0; i < data.Length; i++)
+            data[i] /= max;
+        return data;
+    }
+
+    public static float GetCurrentAmplitude(this AudioSource source)
+    {
+        float[] data = new float[400];
+        source.clip.GetData(data, source.timeSamples);
+        data = Normalize(data);
+
+        float sum = 0;
+        for (int i = 0; i < data.Length; i++)
+            sum += Mathf.Abs(data[i]);
+        return sum / data.Length;
+    }
 }

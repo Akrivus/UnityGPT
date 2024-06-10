@@ -49,7 +49,7 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private List<SpeechFragment> fragments = new List<SpeechFragment>();
     private SpeechFragment fragment = new SpeechFragment();
 
-    public SpeechGenerator(LinkOpenAI client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, Roles role = Roles.System) : base(client, "tts-1", voice, role)
+    public SpeechGenerator(LinkOpenAI client, IStreamingTextGenerator textGenerator, WordMapping wordMapping, string voice, float speed = 1.0f, Roles role = Roles.System) : base(client, "tts-1", voice, speed, role)
     {
         this.textGenerator = textGenerator;
         this.wordMapping = wordMapping;
@@ -82,7 +82,9 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     private IEnumerator PlayFragment(SpeechFragment fragment, AudioSource source)
     {
         if (TextOnly) yield break;
-        yield return new WaitUntil(fragment.HasClip);
+        yield return new WaitFor(fragment.HasClip, 15000);
+        if (!fragment.HasClip())
+            yield break;
 
         IsGeneratingSpeech = true;
 
@@ -133,6 +135,16 @@ public class SpeechGenerator : TextToSpeechGenerator, IStreamingTextGenerator
     public void SetReady()
     {
         IsReady = true;
+    }
+
+    public void AddContext(string context)
+    {
+        textGenerator.AddContext(context);
+    }
+
+    public void AddMessage(string message)
+    {
+        textGenerator.AddMessage(message);
     }
 }
 

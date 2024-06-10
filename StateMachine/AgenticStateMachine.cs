@@ -19,6 +19,9 @@ public class AgenticStateMachine : MonoBehaviour
     [SerializeField]
     private string voice = "echo";
 
+    [SerializeField, Range(0.25f, 4.0f)]
+    private float speed = 1.0f;
+
     [SerializeField]
     private int maxTokens = 1024;
 
@@ -80,7 +83,7 @@ public class AgenticStateMachine : MonoBehaviour
     {
         SystemPrompt = INNER_PROMPT_TEMPLATE.Format(Prompt, Instructions);
         AI = new StreamingTextGenerator(client, SystemPrompt, model, maxTokens, temperature, INTER_PROMPT_TEMPLATE);
-        Speaker = new SpeechGenerator(client, AI, wordMapping, voice, Roles.Assistant);
+        Speaker = new SpeechGenerator(client, AI, wordMapping, voice, speed, Roles.Assistant);
 
         animator = animator ?? GetComponent<Animator>();
 

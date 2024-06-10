@@ -42,6 +42,10 @@ public class QuickTool : IToolCall
         public string Value { get; set; }
         public string Query { get; set; }
 
+        public int? Limit { get; set; }
+
+        public float? Threshhold { get; set; }
+
         public float Score { get; set; }
     }
 }

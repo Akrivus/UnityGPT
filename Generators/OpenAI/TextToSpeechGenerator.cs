@@ -8,12 +8,13 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
 
     public string Model { get; protected set; } = "tts-1";
     public string Voice { get; set; } = "echo";
+    public float Speed { get; set; } = 1f;
 
     protected LinkOpenAI client;
 
     private Roles role = Roles.System;
 
-    public TextToSpeechGenerator(LinkOpenAI api, string model, string voice, Roles role = Roles.System)
+    public TextToSpeechGenerator(LinkOpenAI api, string model, string voice, float speed = 1.0f, Roles role = Roles.System)
     {
         this.client = api;
         Model = model;
@@ -23,7 +24,7 @@ public class TextToSpeechGenerator : ITextToSpeechGenerator
 
     public IPromise<AudioClip> Generate(string text)
     {
-        var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, Voice, Model, role));
+        var body = RestClientExtensions.Serialize(new GenerateTextToSpeech(text, Voice, Model, Speed, role));
         return client.Post(client.Uri_Speech, body, "application/json")
             .Then((helper) => Generate(helper.Data));
     }

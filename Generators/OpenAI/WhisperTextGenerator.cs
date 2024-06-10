@@ -66,6 +66,16 @@ public class WhisperTextGenerator : ITextGenerator
         OnContextReset?.Invoke(this);
     }
 
+    public void AddContext(string context)
+    {
+        promptGenerator.AddContext(context);
+    }
+
+    public void AddMessage(string message)
+    {
+        promptGenerator.AddMessage(message);
+    }
+
     public IPromise SetContext(string message)
     {
         return promptGenerator.RespondTo(message)

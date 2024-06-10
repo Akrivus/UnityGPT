@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -10,10 +11,13 @@ public class WalkingState : MonoBehaviour
     [SerializeField]
     private NavMeshAgent agent;
 
-    [SerializeField, Range(1, 30)]
+    [SerializeField, Range(1, 120)]
     private float delay;
-
     private float timer;
+
+    [SerializeField]
+    private Transform[] circuit;
+    private int i;
 
     public Transform Target;
 
@@ -48,10 +52,15 @@ public class WalkingState : MonoBehaviour
 
     private void Tick(AgenticStateMachine asm)
     {
-        var min = timer + 0.1f;
-        if (agent.remainingDistance < min || agent.isPathStale || (min > 1f && 1f > agent.velocity.magnitude / agent.speed))
+        timer += Time.deltaTime;
+        if (agent.remainingDistance < timer || agent.isPathStale || timer > delay
+            || (timer > 1f && 1f > agent.velocity.magnitude / agent.speed))
+        {
             ASM.SetState(AgenticState.Waiting);
-        timer += Time.deltaTime * (1f / delay);
+            if (circuit.Length == 0) return;
+            i = (i + 1) % circuit.Length;
+            Target.position = circuit[i].position;
+        }
     }
 
     private void Exit(AgenticStateMachine asm)
@@ -64,7 +73,7 @@ public class WalkingState : MonoBehaviour
 
     public void Wander()
     {
-        Target.transform.localPosition = RandomDonut(1, 8);
+        Target.transform.localPosition = RandomDonut(1, 4);
     }
 
     private Vector3 RandomDonut(float minRadius, float maxRadius)

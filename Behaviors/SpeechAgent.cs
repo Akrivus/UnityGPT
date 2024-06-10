@@ -42,6 +42,8 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     protected Roles role = Roles.System;
 
     [Header("Speech")]
+    [SerializeField, Range(0.25f, 4.0f)]
+    protected float speed = 1.0f;
     [SerializeField, Range(0.8f, 1.2f)]
     protected float pitch = 1.0f;
     [SerializeField]
@@ -71,7 +73,7 @@ public class SpeechAgent : MonoBehaviour, IChatAgent
     {
         wordMapping = wordMapping ?? ScriptableObject.CreateInstance<WordMapping>();
         text = new StreamingTextGenerator(client, session.Messages, session.Model, session.MaxTokens, session.Temperature, session.InterstitialPrompt);
-        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, role);
+        speaker = new SpeechGenerator(client, text, wordMapping, session.Voice, speed, role);
 
         DispatchSuccessfulLink(session);
     }

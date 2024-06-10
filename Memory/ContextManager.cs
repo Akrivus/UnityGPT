@@ -7,19 +7,14 @@ using System.IO;
 using UnityEngine;
 
 [RequireComponent(typeof(AgenticStateMachine))]
-public class MemoryManager : MonoBehaviour
+public class ContextManager : MonoBehaviour
 {
-    private const string MEMORY_PROMPT = "Describe what you've learned and what you need to remember.\n " +
+    private const string CONTEXT_PROMPT = "Describe what you've learned and what you need to remember.\n " +
         "Speak in second person, use 'You' statements, and be specific and detailed.";
 
     public AgenticStateMachine ASM;
 
-    [Range(3, 1536)]
-    public int EmbeddingLength = 24;
-
-    public string ShortTermMemory;
-
-    public List<Memory> Memories = new List<Memory>();
+    public List<Context> Contexts = new List<Context>();
 
     private TextEmbedder embedder;
 
@@ -36,40 +31,19 @@ public class MemoryManager : MonoBehaviour
         ASM.AI.AddTool(new QuickTool(WriteInJournal,
             "WriteInJournal", "Record your thoughts for future reference.",
             new StringParam("Value", "Your thoughts.")));
-        ASM.AI.AddTool(new QuickTool(SearchMemory,
-            "SearchMemory", "Search internal memory for additional context.",
+        ASM.AI.AddTool(new QuickTool(SearchContext,
+            "SearchContext", "Search internal memory for additional context.",
             new StringParam("Query", "Query for semantic search."),
             new NumberParam("Threshhold", "Minimum similarity score.", false, 0.0f, 1.0f),
             new IntegerParam("Limit", "Maximum number of memories to return.", false, 1, 12)));
-        ASM.Speaker.OnBeforeContextReset += GenerateShortTermMemory;
-        ASM.Talking.OnBeforeContext += SetShortTermMemory;
+        ASM.Speaker.OnBeforeContextReset += GenerateSituationalContext;
+
     }
-
-    private IPromise GenerateShortTermMemory(SpeechGenerator speech)
-        => (IPromise) speech.Text.RespondTo(MEMORY_PROMPT, "SYSTEM", ASM.Name)
-            .Then((memory) => ShortTermMemory = memory);
-
-    private void SetShortTermMemory(AgenticStateMachine asm, AgenticStateMachine guest, List<string> context)
-        => context.Add(ShortTermMemory);
-
-    private IPromise<string> SearchMemory(QuickTool.Args args)
-        => Retrieve(args.Query, args.Limit ?? 1, args.Threshhold ?? 0.5f)
-            .Then((content) => content ?? "No memory found; refer to context.");
-
-    private void WriteInJournal(QuickTool.Args args)
-        => Memorize(args.Value);
-
-    private IPromise Memorize(string content)
-        => embedder.Embed(content, EmbeddingLength).Then((embedding) => AddMemory(content, embedding));
-
-    private IPromise<string> Retrieve(string content, int limit = 1, float threshhold = 0.5f)
-        => embedder.Embed(content, EmbeddingLength).Then(UpdateSemantics)
-            .Then((embedding) => Retrieve(limit, threshhold));
 
     private string Retrieve(int limit, float threshhold)
     {
         string retrieval = "";
-        foreach (var memory in Memories)
+        foreach (var memory in Contexts)
         {
             if (memory.Similarity < threshhold)
                 break;
@@ -84,28 +58,28 @@ public class MemoryManager : MonoBehaviour
 
     private float[] UpdateSemantics(float[] embedding)
     {
-        foreach (var memory in Memories)
+        foreach (var memory in Contexts)
             memory.UpdateSemantics(embedding);
-        Memories.Sort((a, b) => b.Similarity.CompareTo(a.Similarity));
+        Contexts.Sort((a, b) => b.Similarity.CompareTo(a.Similarity));
         return embedding;
     }
 
-    private void AddMemory(string content, float[] embedding)
+    private void AddContext(string content, float[] embedding)
     {
-        Memories.Add(new Memory(content, embedding));
+        Contexts.Add(new Context(content, embedding));
         StartCoroutine(SaveMemories());
     }
 
     private void ReadMemories(string path)
     {
         var json = File.ReadAllText(path);
-        Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
+        Contexts = JsonConvert.DeserializeObject<List<Context>>(json);
     }
 
     private void CreateMemories(int i = 0)
     {
-        if (i >= Memories.Count) return;
-        var memory = Memories[i];
+        if (i >= Contexts.Count) return;
+        var memory = Contexts[i];
         embedder.Embed(memory.Content, EmbeddingLength)
             .Then((embedding) => {
                 memory.Embedding = embedding;
@@ -125,7 +99,7 @@ public class MemoryManager : MonoBehaviour
     private IEnumerator SaveMemories()
     {
         var path = Application.persistentDataPath + $"/MemoriesOf{name}.json";
-        var json = JsonConvert.SerializeObject(Memories);
+        var json = JsonConvert.SerializeObject(Contexts);
         File.WriteAllText(path, json);
 
         yield return null;
@@ -133,7 +107,7 @@ public class MemoryManager : MonoBehaviour
 }
 
 [Serializable]
-public class Memory
+public class Context
 {
     [field: SerializeField, TextArea]
     public string Content { get; set; }
@@ -144,14 +118,14 @@ public class Memory
 
     private float similarity;
 
-    public Memory(string content, float[] embedding)
+    public Context(string content, float[] embedding)
     {
         Content = content;
         Embedding = embedding;
         Time = DateTime.Now;
     }
 
-    public Memory()
+    public Context()
     {
         Time = DateTime.Now;
     }
